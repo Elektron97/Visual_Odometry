@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+
+using namespace std;
 using namespace cv;
 
 int main(int argc, char **argv)
@@ -18,14 +20,18 @@ int main(int argc, char **argv)
     for(;;)
     {
         cap >> frame;
-
         if(frame.empty()) 
+        {
+            ROS_WARN("Video Finito!");
             break;
+        }
 
-        imshow("Example3", frame);
+        imshow("Example2", frame);
 
-        if(waitKey(33) >= 0)
-            break;
+        waitKey(33);  //di fatto imposta gli fps
+
+        /*if(waitKey(33) >= 0)
+            break;*/
 
     }
 
