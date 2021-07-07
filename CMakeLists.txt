@@ -15,14 +15,17 @@ find_package(OpenCV 3 REQUIRED)
 catkin_package()
 
 include_directories(
-# include
+# include  #-> Da scommentare per librerie
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_executable(opencv_test src/opencv_test.cpp)
-target_link_libraries(opencv_test 
+add_executable(show_image src/show_image.cpp)
+target_link_libraries(show_image 
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES})
 
-#include_directories(${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+add_executable(show_video src/show_video.cpp)
+target_link_libraries(show_video 
+${catkin_LIBRARIES}
+${OpenCV_LIBRARIES})

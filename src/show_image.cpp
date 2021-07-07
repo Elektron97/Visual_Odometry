@@ -6,7 +6,7 @@ using namespace cv;
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "opencv_test");
+    ros::init(argc, argv, "show_image");
 	ros::NodeHandle node_obj;
 
     ROS_INFO("OpenCV Test");
