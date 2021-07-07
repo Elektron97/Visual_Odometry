@@ -28,12 +28,11 @@ bool sdr_Rbc = true; // TRUE: ENU | FALSE: NED -> Dichiaro nel main, eigen antip
 Matrix3f Rbc; 
 
 bool JumpCond = true;
-int distance = 10;
+int distance = 10;  //distance in pixels for Jumping Condition
 
 bool Loop_closing = false;
-bool motion2D = true;
+bool motion2D = true;   //Planar motion: [x y yaw]
 //bool magnetic_comp = true;
-
 
 /*FUNCTIONS DECLARATION*/
 
