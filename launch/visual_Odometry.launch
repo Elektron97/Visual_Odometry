@@ -1,0 +1,9 @@
+<!--Launch per Visual Odometry-->
+<launch>
+
+<!--Play bag files "parete"-->
+<node pkg="rosbag" type="play" name="player" output="screen" args="--clock /home/daniele/bagfiles/parete_3.5m_AR.bag"/>
+<!--Launch visual_Odometry.cpp-->
+<node name="visual_Odometry" pkg ="visual_odometry" type="visual_Odometry" output="screen"/>
+
+</launch>

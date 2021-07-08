@@ -2,6 +2,16 @@
 * Stimare la posa da sequenze di Immagini.     *
 ***********************************************/
 
+
+/**********************************************TOPICS AND MSGS****************************************************
+*topics:      /zeno/dvl                                         911 msgs    : uuv_sensor_ros_plugins_msgs/DVL    *
+*             /zeno/imu                                        6555 msgs    : sensor_msgs/Imu                    *   
+*             /zeno/laser                                       656 msgs    : sensor_msgs/LaserScan              *
+*             /zeno/pose_gt                                    2622 msgs    : nav_msgs/Odometry                  *
+*             /zeno/zeno/cameraleft/camera_image/compressed    2359 msgs    : sensor_msgs/CompressedImage        *
+*             /zeno/zeno/cameraright/camera_image/compressed   2359 msgs    : sensor_msgs/CompressedImage        *
+******************************************************************************************************************/
+
 /*INCLUDE LIBRARIES*/
 #include "ros/ros.h"
 #include "/usr/include/eigen3/Eigen/Eigen"
@@ -36,14 +46,13 @@ bool motion2D = true;   //Planar motion: [x y yaw]
 
 /*FUNCTIONS DECLARATION*/
 
-
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "visual_Odometry");
 	ros::NodeHandle node_obj;
 
     /*UPLOAD DATA*/
-    //To do: rosbag input -> Subscribe?
+
 
     /*INIT*/
 
