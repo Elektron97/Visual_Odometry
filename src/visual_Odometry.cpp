@@ -32,6 +32,7 @@
 
 /*DEFINE*/
 #define FIRST_IMAGE 580
+#define viewId_stop 810
 #define MIN_NUM_FEATURES 20
 #define FREQUENCY 10
 
@@ -65,7 +66,7 @@ sensor_msgs::CompressedImage camera_dx;
 
 nav_msgs::Odometry ground_truth;
 
-int test = 0;
+int discard = 0;
 
 /*FUNCTIONS DECLARATION*/
 
@@ -148,7 +149,7 @@ void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
     camera_sx.header = msg->header;
     camera_sx.format = msg->format;
     camera_sx.data = msg->data;
-    test++;
+    discard++;
 }
 
 void cameraDX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
@@ -193,19 +194,21 @@ int main(int argc, char **argv)
 
 	ros::Rate loop_rate(FREQUENCY);	//10 Hz Prediction step
 
-    /*INIT*/
-    while(test < 3) //scarto le prime 3 immagini
+    /*INITIALIZATION*/
+    while(discard < FIRST_IMAGE) //scarto le prime  immagini
     {
         ros::spinOnce();
-        loop_rate.sleep();	
     }
-
+    ROS_WARN("START!");
 
     /*ITERATIONS*/
     while(ros::ok())
     {
         ros::spinOnce();
         loop_rate.sleep();	
+
+        if(discard > viewId_stop)
+            break;
 
         /*SHOW IMAGE FROM BAG FILE*/
 
@@ -228,8 +231,8 @@ int main(int argc, char **argv)
         namedWindow( "Example1", cv::WINDOW_AUTOSIZE );
         imshow("Example1", image_test);
         waitKey(33);
-        //destroyWindow( "Example1" );
     }
     destroyWindow( "Example1" );
+    ROS_WARN("Video Finito!");
     return 0;
 }
