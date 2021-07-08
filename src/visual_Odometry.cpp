@@ -18,6 +18,9 @@
 #include <iostream>
 #include <stdio.h>
 #include <opencv2/opencv.hpp> 
+#include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.h>
+#include <sensor_msgs/image_encodings.h>
 
 /*ROS MSGS*/
 #include "nav_msgs/Odometry.h"
@@ -35,6 +38,7 @@
 /*NAMESPACE*/
 using namespace std;
 using namespace Eigen;
+using namespace cv;
 
 /*PARAMETERS*/ //Da mettere in YAML?
 string detector_method = "SURF"; //to do: enum | HARRIS | FAST | KAZE | ORB | SURF | SIFT
@@ -54,13 +58,14 @@ bool motion2D = true;   //Planar motion: [x y yaw]
 //bool magnetic_comp = true;
 
 /*GLOBAL VARIABLES*/
-sensor_msgs::Imu imu;
+sensor_msgs::Imu imu;   //Al momento inutile!
 sensor_msgs::LaserScan laser;
 sensor_msgs::CompressedImage camera_sx;
 sensor_msgs::CompressedImage camera_dx;
 
 nav_msgs::Odometry ground_truth;
 
+int test = 0;
 
 /*FUNCTIONS DECLARATION*/
 
@@ -130,7 +135,8 @@ void laser_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 }
 
 void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
-{   /************************
+{   
+    /************************
     *std_msgs/Header header *
     *    uint32 seq         *
     *    time stamp         *
@@ -142,10 +148,12 @@ void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
     camera_sx.header = msg->header;
     camera_sx.format = msg->format;
     camera_sx.data = msg->data;
+    test++;
 }
 
 void cameraDX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
-{   /************************
+{   
+    /************************
     *std_msgs/Header header *
     *    uint32 seq         *
     *    time stamp         *
@@ -185,16 +193,43 @@ int main(int argc, char **argv)
 
 	ros::Rate loop_rate(FREQUENCY);	//10 Hz Prediction step
 
-    /*UPLOAD DATA*/
-
-
     /*INIT*/
+    while(test < 3) //scarto le prime 3 immagini
+    {
+        ros::spinOnce();
+        loop_rate.sleep();	
+    }
 
+
+    /*ITERATIONS*/
     while(ros::ok())
     {
-        ROS_INFO("TEST");
         ros::spinOnce();
-        loop_rate.sleep();		
+        loop_rate.sleep();	
+
+        /*SHOW IMAGE FROM BAG FILE*/
+
+        //provo SENZA image_transport
+        cv_bridge::CvImagePtr cv_ptr;
+
+        try
+        {
+            cv_ptr = cv_bridge::toCvCopy(camera_sx, sensor_msgs::image_encodings::BGR8);
+        }
+
+        catch(cv_bridge::Exception& e)
+        {
+            ROS_ERROR("cv_bridge exception: %s", e.what());
+            return 0;
+        }
+
+        Mat image_test = cv_ptr->image;
+        if( image_test.empty() ) return -1;
+        namedWindow( "Example1", cv::WINDOW_AUTOSIZE );
+        imshow("Example1", image_test);
+        waitKey(33);
+        //destroyWindow( "Example1" );
     }
+    destroyWindow( "Example1" );
     return 0;
 }
