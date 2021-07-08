@@ -69,6 +69,7 @@ nav_msgs::Odometry ground_truth;
 int discard = 0;
 
 /*FUNCTIONS DECLARATION*/
+Mat ros2cv(sensor_msgs::CompressedImage image); //NON ottimizzata! -> image_transport
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -194,12 +195,15 @@ int main(int argc, char **argv)
 
 	ros::Rate loop_rate(FREQUENCY);	//10 Hz Prediction step
 
-    /*INITIALIZATION*/
-    while(discard < FIRST_IMAGE) //scarto le prime  immagini
+    /*Aspetto la FIRST_IMAGE*/
+    while(discard < FIRST_IMAGE) //scarto le prime immagini
     {
         ros::spinOnce();
     }
     ROS_WARN("START!");
+
+    /*INITIALIZATION*/
+
 
     /*ITERATIONS*/
     while(ros::ok())
@@ -212,21 +216,7 @@ int main(int argc, char **argv)
 
         /*SHOW IMAGE FROM BAG FILE*/
 
-        //provo SENZA image_transport
-        cv_bridge::CvImagePtr cv_ptr;
-
-        try
-        {
-            cv_ptr = cv_bridge::toCvCopy(camera_sx, sensor_msgs::image_encodings::BGR8);
-        }
-
-        catch(cv_bridge::Exception& e)
-        {
-            ROS_ERROR("cv_bridge exception: %s", e.what());
-            return 0;
-        }
-
-        Mat image_test = cv_ptr->image;
+        Mat image_test = ros2cv(camera_sx);
         if( image_test.empty() ) return -1;
         namedWindow( "Example1", cv::WINDOW_AUTOSIZE );
         imshow("Example1", image_test);
@@ -234,5 +224,25 @@ int main(int argc, char **argv)
     }
     destroyWindow( "Example1" );
     ROS_WARN("Video Finito!");
+
     return 0;
+}
+
+Mat ros2cv(sensor_msgs::CompressedImage image)
+{
+    //provo SENZA image_transport -> Non ottimizzato. 
+    //La tengo per ricordo
+    cv_bridge::CvImagePtr cv_ptr;
+
+    try
+    {
+        cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
+    }
+
+    catch(cv_bridge::Exception& e)
+    {
+        ROS_ERROR("cv_bridge exception: %s", e.what());
+    }
+
+    return cv_ptr->image;
 }
