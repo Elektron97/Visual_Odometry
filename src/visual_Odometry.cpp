@@ -36,7 +36,7 @@
 using namespace std;
 using namespace Eigen;
 
-/*GLOBAL VARIABLES*/ //Da mettere in YAML?
+/*PARAMETERS*/ //Da mettere in YAML?
 string detector_method = "SURF"; //to do: enum | HARRIS | FAST | KAZE | ORB | SURF | SIFT
 string feature_method = "MATCHING"; //to do: bool | MATCHING | TRACKING
 string estimation_method = "ESSENTIAL"; //to do: bool | ESSENTIAL | HOMOGRAPHY
@@ -53,32 +53,118 @@ bool Loop_closing = false;
 bool motion2D = true;   //Planar motion: [x y yaw]
 //bool magnetic_comp = true;
 
+/*GLOBAL VARIABLES*/
+sensor_msgs::Imu imu;
+sensor_msgs::LaserScan laser;
+sensor_msgs::CompressedImage camera_sx;
+sensor_msgs::CompressedImage camera_dx;
+
+nav_msgs::Odometry ground_truth;
+
+
 /*FUNCTIONS DECLARATION*/
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 {
-    //...
+    /************************************************  
+    *    std_msgs/Header header                     *
+    *       uint32 seq                              *
+    *       time stamp                              *
+    *       string frame_id                         *
+    *    geometry_msgs/Quaternion orientation       *
+    *       float64 x                               *
+    *       float64 y                               *
+    *       float64 z                               *
+    *       float64 w                               *
+    *    float64[9] orientation_covariance          *
+    *    geometry_msgs/Vector3 angular_velocity     *
+    *      float64 x                                *
+    *      float64 y                                *
+    *      float64 z                                *
+    *    float64[9] angular_velocity_covariance     *
+    *    geometry_msgs/Vector3 linear_acceleration  *
+    *      float64 x                                *
+    *      float64 y                                *
+    *      float64 z                                *
+    *    float64[9] linear_acceleration_covariance  *
+    *************************************************/
+
+    imu.header = msg->header;
+    imu.orientation = msg->orientation;
+    imu.orientation_covariance = msg->orientation_covariance;
+    imu.angular_velocity = msg ->angular_velocity;
+    imu.angular_velocity_covariance = msg->angular_velocity_covariance;
+    imu.linear_acceleration = msg->linear_acceleration;
+    imu.linear_acceleration_covariance = msg->linear_acceleration_covariance;
 }
 
 void laser_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
-    //...
+    /****************************
+    * std_msgs/Header header    *
+    *    uint32 seq             *
+    *    time stamp             *
+    *    string frame_id        *
+    *  float32 angle_min        *
+    *  float32 angle_max        *
+    *  float32 angle_increment  *
+    *  float32 time_increment   *
+    *  float32 scan_time        *
+    *  float32 range_min        *
+    *  float32 range_max        *
+    *  float32[] ranges         *
+    *  float32[] intensities    *
+    *****************************/
+
+   laser.header = msg->header;
+   laser.angle_min = msg->angle_min;
+   laser.angle_max = msg->angle_max;
+   laser.angle_increment = msg->angle_increment;
+   laser.time_increment = msg->time_increment;
+   laser.scan_time = msg->scan_time;
+   laser.range_min = msg->range_min;
+   laser.range_max = msg->range_max;
+   laser.ranges = msg->ranges;
+   laser.intensities = msg->intensities;
 }
 
 void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
-{
-    //...
+{   /************************
+    *std_msgs/Header header *
+    *    uint32 seq         *
+    *    time stamp         *
+    *    string frame_id    *
+    *string format          *
+    *uint8[] data           *
+    *************************/
+
+    camera_sx.header = msg->header;
+    camera_sx.format = msg->format;
+    camera_sx.data = msg->data;
 }
 
 void cameraDX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
-{
-    //...
+{   /************************
+    *std_msgs/Header header *
+    *    uint32 seq         *
+    *    time stamp         *
+    *    string frame_id    *
+    *string format          *
+    *uint8[] data           *
+    *************************/
+
+    camera_dx.header = msg->header;
+    camera_dx.format = msg->format;
+    camera_dx.data = msg->data;
 }
 
 void groundTruth_callback(const nav_msgs::Odometry::ConstPtr& msg)
 {
-    //...
+    ground_truth.header = msg->header;
+    ground_truth.child_frame_id = msg->child_frame_id;
+    ground_truth.pose = msg->pose;
+    ground_truth.twist = msg->twist;
 }
 
 int main(int argc, char **argv)
@@ -107,7 +193,8 @@ int main(int argc, char **argv)
     while(ros::ok())
     {
         ROS_INFO("TEST");
-        break;
+        ros::spinOnce();
+        loop_rate.sleep();		
     }
     return 0;
 }
