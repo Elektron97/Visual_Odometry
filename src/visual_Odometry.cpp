@@ -41,6 +41,15 @@ using namespace std;
 using namespace Eigen;
 using namespace cv;
 
+/*CAMERA UTILITY*/
+const double fx = 407.0646129842357;
+const double fy = 407.0646129842357;
+const double ccxLeft = 384.5;
+const double ccyLeft = 246.5;
+
+const double focal_length[] = {fx, fy};
+const double principalPoint[] = {ccxLeft, ccyLeft};
+
 /*PARAMETERS*/ //Da mettere in YAML?
 string detector_method = "SURF"; //to do: enum | HARRIS | FAST | KAZE | ORB | SURF | SIFT
 string feature_method = "MATCHING"; //to do: bool | MATCHING | TRACKING
@@ -70,6 +79,7 @@ int discard = 0;
 
 /*FUNCTIONS DECLARATION*/
 Mat ros2cv(sensor_msgs::CompressedImage image);
+//double loadCameraParams(Mat image);
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -205,14 +215,26 @@ int main(int argc, char **argv)
 
     /*Aspetto la FIRST_IMAGE*/
     ROS_INFO("Waiting %d-th frame...", FIRST_IMAGE);
+    
     while(discard < FIRST_IMAGE) //scarto le prime immagini
     {
-        ros::spinOnce();
+        ros::spinOnce();        
     }
     ROS_WARN("START!");
 
     /*INITIALIZATION*/
+    Mat first_image = ros2cv(camera_sx);
+    int first_image_size[] = {first_image.size().width, first_image.size().height};
+    ROS_INFO("First Image Size:");
+    ROS_INFO("Width: %d", first_image_size[0]);
+    ROS_INFO("Heigth: %d", first_image_size[1]);
 
+    /*getImage()*/
+    //Prendo immagine -> rgb2gray -> im2single -> Undistortimage
+
+    /*Detect and Match Features*/
+
+    /*Fail Detection: Meglio se incorporo dentro Detect and Match Features ?*/
 
     /*ITERATIONS*/
     while(ros::ok())
@@ -238,8 +260,6 @@ int main(int argc, char **argv)
 
 Mat ros2cv(sensor_msgs::CompressedImage image)
 {
-    //provo SENZA image_transport -> Non ottimizzato. 
-    //La tengo per ricordo
     cv_bridge::CvImagePtr cv_ptr;
 
     try
