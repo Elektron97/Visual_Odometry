@@ -69,7 +69,7 @@ nav_msgs::Odometry ground_truth;
 int discard = 0;
 
 /*FUNCTIONS DECLARATION*/
-Mat ros2cv(sensor_msgs::CompressedImage image); //NON ottimizzata! -> image_transport
+Mat ros2cv(sensor_msgs::CompressedImage image);
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -188,14 +188,23 @@ int main(int argc, char **argv)
     //Sub Objects
 	ros::Subscriber sub_imu=node_obj.subscribe("/zeno/imu", 1, imu_callback);
 	ros::Subscriber sub_laser=node_obj.subscribe("/zeno/laser", 1, laser_callback);
+
 	//ros::Subscriber sub_dvl=node_obj.subscribe("/zeno/dvl", 1, dvl_callback);
+
 	ros::Subscriber sub_cameraSX=node_obj.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
-    ros::Subscriber sub_cameraDx=node_obj.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);
+    ros::Subscriber sub_cameraDX=node_obj.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);
+
+    //Image transport funziona SOLO con sensor_msgs/Image e non sensor_msgs/CompressedImage
+    /*image_transport::ImageTransport it(node_obj);
+    image_transport::Subscriber sub_cameraSX = it.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
+    image_transport::Subscriber sub_cameraDX = it.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);*/
+    
 	ros::Subscriber sub_GT=node_obj.subscribe("/zeno/posegt", 1, groundTruth_callback);
 
 	ros::Rate loop_rate(FREQUENCY);	//10 Hz Prediction step
 
     /*Aspetto la FIRST_IMAGE*/
+    ROS_INFO("Waiting %d-th frame...", FIRST_IMAGE);
     while(discard < FIRST_IMAGE) //scarto le prime immagini
     {
         ros::spinOnce();
@@ -215,14 +224,13 @@ int main(int argc, char **argv)
             break;
 
         /*SHOW IMAGE FROM BAG FILE*/
-
         Mat image_test = ros2cv(camera_sx);
         if( image_test.empty() ) return -1;
-        namedWindow( "Example1", cv::WINDOW_AUTOSIZE );
-        imshow("Example1", image_test);
+        namedWindow( "CameraSX", cv::WINDOW_AUTOSIZE );
+        imshow("CameraSX", image_test);
         waitKey(33);
     }
-    destroyWindow( "Example1" );
+    destroyWindow("CameraSX");
     ROS_WARN("Video Finito!");
 
     return 0;
