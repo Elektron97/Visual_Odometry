@@ -232,6 +232,18 @@ int main(int argc, char **argv)
     /*getImage()*/
     //Prendo immagine -> rgb2gray -> im2single -> Undistortimage
 
+    /*****Undistort Image************************ 
+    * Matlab: undistortImage(img, cameraParams) *
+    * Dato che hanno usato "cameraIntrinsic",   *
+    * Radial e Tang. Distortion = [0 0]         *
+    * Per default!                              *
+    ********************************************/
+    Mat gray_img;
+    cvtColor(first_image, gray_img, COLOR_RGB2GRAY); //void cvtColor()
+
+    Mat undistort_image;
+    //undistort(gray_img, undistort_image, )
+
     /*Detect and Match Features*/
 
     /*Fail Detection: Meglio se incorporo dentro Detect and Match Features ?*/
@@ -274,3 +286,12 @@ Mat ros2cv(sensor_msgs::CompressedImage image)
 
     return cv_ptr->image;
 }
+
+/*Mat get_image(Mat current_img, InputArray cameraParams) 
+{
+    //RGB -> GRAY
+    Mat gray_img;
+    cvtColor(current_img, gray_img, COLOR_RGB2GRAY); //void cvtColor()
+
+
+}*/
