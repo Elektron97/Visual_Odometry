@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(visual_odometry)
 
+#set(OpenCV_DIR /usr/local/include/opencv4)
+
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
@@ -12,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV 3 REQUIRED) 
 
 catkin_package()
 

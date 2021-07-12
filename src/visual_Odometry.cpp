@@ -18,6 +18,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <opencv2/opencv.hpp> 
+//#include <opencv2/xfeatures2d/nonfree.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
@@ -40,12 +41,23 @@
 using namespace std;
 using namespace Eigen;
 using namespace cv;
+//using namespace cv::xfeatures2d;
 
 /*CAMERA UTILITY*/
+//Intrinsic Parameters
 const double fx = 407.0646129842357;
 const double fy = 407.0646129842357;
 const double ccxLeft = 384.5;
 const double ccyLeft = 246.5;
+
+//Distortion Coefficients
+const double k1 = 0.0;
+const double k2 = 0.0;
+const double p1 = 0.0;
+const double p2 = 0.0;
+
+//SURF parameters
+int minHessian = 400;
 
 const double focal_length[] = {fx, fy};
 const double principalPoint[] = {ccxLeft, ccyLeft};
@@ -79,7 +91,7 @@ int discard = 0;
 
 /*FUNCTIONS DECLARATION*/
 Mat ros2cv(sensor_msgs::CompressedImage image);
-//double loadCameraParams(Mat image);
+Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -224,27 +236,31 @@ int main(int argc, char **argv)
 
     /*INITIALIZATION*/
     Mat first_image = ros2cv(camera_sx);
-    int first_image_size[] = {first_image.size().width, first_image.size().height};
+    /*int first_image_size[] = {first_image.size().width, first_image.size().height};
     ROS_INFO("First Image Size:");
     ROS_INFO("Width: %d", first_image_size[0]);
-    ROS_INFO("Heigth: %d", first_image_size[1]);
+    ROS_INFO("Heigth: %d", first_image_size[1]);*/
 
-    /*getImage()*/
-    //Prendo immagine -> rgb2gray -> im2single -> Undistortimage
+    //Define Camera matrix and Distortion Coeff.
+    Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
+    Mat distortionCoeff = (Mat1d(1, 4) << k1, k2, p1, p2);
 
-    /*****Undistort Image************************ 
-    * Matlab: undistortImage(img, cameraParams) *
-    * Dato che hanno usato "cameraIntrinsic",   *
-    * Radial e Tang. Distortion = [0 0]         *
-    * Per default!                              *
-    ********************************************/
-    Mat gray_img;
-    cvtColor(first_image, gray_img, COLOR_RGB2GRAY); //void cvtColor()
+    //Undistort Image
+    Mat undistorted_img = get_image(first_image, cameraMatrix, distortionCoeff);
 
-    Mat undistort_image;
-    //undistort(gray_img, undistort_image, )
+    //Detect and Match Features
+    //al momento solo il metodo indicato: SURF
 
-    /*Detect and Match Features*/
+    //-- Step 1: Detect the keypoints using SURF Detector
+    /*Ptr<SURF> detector = SURF::create(minHessian);
+    std::vector<KeyPoint> keypoints;
+    detector->detect( src, keypoints );
+    //-- Draw keypoints
+    Mat img_keypoints;
+    drawKeypoints(src, keypoints, img_keypoints);
+    //-- Show detected (drawn) keypoints
+    imshow("SURF Keypoints", img_keypoints );
+    waitKey();*/
 
     /*Fail Detection: Meglio se incorporo dentro Detect and Match Features ?*/
 
@@ -287,11 +303,20 @@ Mat ros2cv(sensor_msgs::CompressedImage image)
     return cv_ptr->image;
 }
 
-/*Mat get_image(Mat current_img, InputArray cameraParams) 
+Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff) 
 {
-    //RGB -> GRAY
+    /*****Undistort Image************************ 
+    * Matlab: undistortImage(img, cameraParams) *
+    * Dato che hanno usato "cameraIntrinsic",   *
+    * Radial e Tang. Distortion = [0 0]         *
+    * Per default!                              *
+    ********************************************/
+
     Mat gray_img;
     cvtColor(current_img, gray_img, COLOR_RGB2GRAY); //void cvtColor()
 
+    Mat undistorted_image;
+    undistort(gray_img, undistorted_image, cameraMatrix, distortionCoeff);
+    return undistorted_image;
 
-}*/
+}
