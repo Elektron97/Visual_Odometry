@@ -18,7 +18,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <opencv2/opencv.hpp> 
-//#include <opencv2/xfeatures2d/nonfree.hpp>
+#include <opencv2/xfeatures2d/nonfree.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
@@ -41,7 +41,7 @@
 using namespace std;
 using namespace Eigen;
 using namespace cv;
-//using namespace cv::xfeatures2d;
+using namespace cv::xfeatures2d;
 
 /*CAMERA UTILITY*/
 //Intrinsic Parameters
@@ -92,6 +92,7 @@ int discard = 0;
 /*FUNCTIONS DECLARATION*/
 Mat ros2cv(sensor_msgs::CompressedImage image);
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
+void detectAndShow(Mat undistorted_img);
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -220,6 +221,9 @@ int main(int argc, char **argv)
     /*image_transport::ImageTransport it(node_obj);
     image_transport::Subscriber sub_cameraSX = it.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
     image_transport::Subscriber sub_cameraDX = it.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);*/
+
+    /*Esiste anche image_transport per i compressed! Cerca!*/
+    /*http://wiki.ros.org/compressed_image_transport*/
     
 	ros::Subscriber sub_GT=node_obj.subscribe("/zeno/posegt", 1, groundTruth_callback);
 
@@ -251,17 +255,6 @@ int main(int argc, char **argv)
     //Detect and Match Features
     //al momento solo il metodo indicato: SURF
 
-    //-- Step 1: Detect the keypoints using SURF Detector
-    /*Ptr<SURF> detector = SURF::create(minHessian);
-    std::vector<KeyPoint> keypoints;
-    detector->detect( src, keypoints );
-    //-- Draw keypoints
-    Mat img_keypoints;
-    drawKeypoints(src, keypoints, img_keypoints);
-    //-- Show detected (drawn) keypoints
-    imshow("SURF Keypoints", img_keypoints );
-    waitKey();*/
-
     /*Fail Detection: Meglio se incorporo dentro Detect and Match Features ?*/
 
     /*ITERATIONS*/
@@ -275,10 +268,11 @@ int main(int argc, char **argv)
 
         /*SHOW IMAGE FROM BAG FILE*/
         Mat image_test = ros2cv(camera_sx);
-        if( image_test.empty() ) return -1;
+        detectAndShow(image_test);
+        /*if( image_test.empty() ) return -1;
         namedWindow( "CameraSX", cv::WINDOW_AUTOSIZE );
         imshow("CameraSX", image_test);
-        waitKey(33);
+        waitKey(33); */
     }
     destroyWindow("CameraSX");
     ROS_WARN("Video Finito!");
@@ -303,7 +297,7 @@ Mat ros2cv(sensor_msgs::CompressedImage image)
     return cv_ptr->image;
 }
 
-Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff) 
+Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 {
     /*****Undistort Image************************ 
     * Matlab: undistortImage(img, cameraParams) *
@@ -319,4 +313,18 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
     undistort(gray_img, undistorted_image, cameraMatrix, distortionCoeff);
     return undistorted_image;
 
+}
+
+void detectAndShow(Mat undistorted_img)
+{
+    //-- Step 1: Detect the keypoints using SURF Detector
+    Ptr<SURF> detector = SURF::create(minHessian);
+    std::vector<KeyPoint> keypoints;
+    detector->detect( undistorted_img, keypoints );
+    //-- Draw keypoints
+    Mat img_keypoints;
+    drawKeypoints(undistorted_img, keypoints, img_keypoints);
+    //-- Show detected (drawn) keypoints
+    imshow("SURF Keypoints", img_keypoints );
+    waitKey(33);
 }
