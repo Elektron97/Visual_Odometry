@@ -97,7 +97,7 @@ int discard = 0; //Posso usare header, time_stamp ecc? <- Imparare ad usarlo!
 /*FUNCTIONS DECLARATION*/
 Mat ros2cv(sensor_msgs::CompressedImage image);
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
-void detectAndMatchFeatures(Mat img1, Mat img2);
+std::vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2);
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -219,12 +219,11 @@ int main(int argc, char **argv)
 
 	//ros::Subscriber sub_dvl=node_obj.subscribe("/zeno/dvl", 1, dvl_callback);
 
+    /*ros::Subscriber risulta meno efficente di image_transport.*/
+    //http://wiki.ros.org/compressed_image_transport
 	ros::Subscriber sub_cameraSX=node_obj.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
     ros::Subscriber sub_cameraDX=node_obj.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);
 
-    /*Esiste anche image_transport per i compressed! Cerca!*/
-    /*http://wiki.ros.org/compressed_image_transport*/
-    
 	ros::Subscriber sub_GT=node_obj.subscribe("/zeno/posegt", 1, groundTruth_callback);
 
 	ros::Rate loop_rate(FREQUENCY);	//10 Hz Prediction step
@@ -267,9 +266,38 @@ int main(int argc, char **argv)
             waitKey(fps);
         }
 
+        /*FEATURE MATCHING*/
         Mat curr_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
 
-        detectAndMatchFeatures(prev_img, curr_img);
+        //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
+        Ptr<SURF> detector = SURF::create( minHessian );
+        std::vector<KeyPoint> keypoints1, keypoints2;
+        Mat descriptors1, descriptors2;
+        detector->detectAndCompute( prev_img, noArray(), keypoints1, descriptors1 );
+        detector->detectAndCompute( curr_img, noArray(), keypoints2, descriptors2 );
+
+        //-- Step 2: Matching descriptor vectors with a brute force matcher
+        // Since SURF is a floating-point descriptor NORM_L2 is used
+        Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
+        std::vector< DMatch > matches;
+        matcher->match( descriptors1, descriptors2, matches );
+
+        if(showMatch)
+        {
+            //-- Draw matches
+            Mat img_matches;
+            drawMatches( prev_img, keypoints1, curr_img, keypoints2, matches, img_matches );
+            //-- Show detected matches
+            imshow("Matches", img_matches );
+            waitKey(fps);
+        }
+
+        /*POSE ESTIMATION*/
+        //Stima dell'Essential Matrix
+        
+
+
+
         prev_img = curr_img; 
     }
     ROS_WARN("Video Finito!");
@@ -312,7 +340,7 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 
 }
 
-void detectAndMatchFeatures(Mat img1, Mat img2)
+std::vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2)
 {
     //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
     Ptr<SURF> detector = SURF::create( minHessian );
@@ -336,4 +364,6 @@ void detectAndMatchFeatures(Mat img1, Mat img2)
         imshow("Matches", img_matches );
         waitKey(fps);
     }
+
+    return matches;
 }
