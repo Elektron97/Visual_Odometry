@@ -1,8 +1,9 @@
 # Visual_Odometry
 Progetto SGN: Visual Odometry
 
-Prima di compilare, assicurarsi che il CMakeFile sia corretto. (OpenCV Required)
+#### TO DO: 
+-image_transport compressed.
 
-#### Nota: Image Transport funziona soltanto con sensor_msgs/Image e non sensor_msgs/CompressedImage. 
+-provare cv_bridge con opencv_contrib 3.2.0.
 
-### To do: Risolvere il rpoblema di opencv_contrib!
+-Essential Matrix e Epipolar Geometry.
