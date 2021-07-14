@@ -92,12 +92,10 @@ sensor_msgs::CompressedImage camera_dx;
 
 nav_msgs::Odometry ground_truth;
 
-int discard = 0; //Posso usare header, time_stamp ecc? <- Imparare ad usarlo!
-
 /*FUNCTIONS DECLARATION*/
 Mat ros2cv(sensor_msgs::CompressedImage image);
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
-std::vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2);
+vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2);
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -178,7 +176,6 @@ void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
     camera_sx.header = msg->header;
     camera_sx.format = msg->format;
     camera_sx.data = msg->data;
-    discard++;
 }
 
 void cameraDX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
@@ -231,9 +228,9 @@ int main(int argc, char **argv)
     /*Aspetto la FIRST_IMAGE*/
     ROS_INFO("Waiting %d-th frame...", FIRST_IMAGE);
     
-    while(discard < FIRST_IMAGE) //scarto le prime immagini
+    while(camera_sx.header.seq < FIRST_IMAGE) //scarto le prime immagini
     {
-        ros::spinOnce();        
+        ros::spinOnce();
     }
     ROS_WARN("START!");
 
@@ -255,7 +252,7 @@ int main(int argc, char **argv)
         ros::spinOnce();
         loop_rate.sleep();	
 
-        if(discard > viewId_stop)
+        if(camera_sx.header.seq > viewId_stop)
             break;
 
         /*SHOW IMAGE FROM BAG FILE*/
@@ -271,7 +268,7 @@ int main(int argc, char **argv)
 
         //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
         Ptr<SURF> detector = SURF::create( minHessian );
-        std::vector<KeyPoint> keypoints1, keypoints2;
+        vector<KeyPoint> keypoints1, keypoints2;
         Mat descriptors1, descriptors2;
         detector->detectAndCompute( prev_img, noArray(), keypoints1, descriptors1 );
         detector->detectAndCompute( curr_img, noArray(), keypoints2, descriptors2 );
@@ -279,7 +276,7 @@ int main(int argc, char **argv)
         //-- Step 2: Matching descriptor vectors with a brute force matcher
         // Since SURF is a floating-point descriptor NORM_L2 is used
         Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
-        std::vector< DMatch > matches;
+        vector< DMatch > matches;
         matcher->match( descriptors1, descriptors2, matches );
 
         if(showMatch)
@@ -293,8 +290,27 @@ int main(int argc, char **argv)
         }
 
         /*POSE ESTIMATION*/
-        //Stima dell'Essential Matrix
-        
+        //Stima dell'Essential Matrix -> cv::findEssentialMat()
+        //Essa richiede i Keypoint in vector<Point2d>, non <KeyPoint>
+        vector<Point2f> keypoints1_conv, keypoints2_conv;
+        /*KeyPoint::convert(keypoints1, keypoints1_conv);
+        KeyPoint::convert(keypoints2, keypoints2_conv);*/
+
+        //Non va bene perche' devo tenere conto del match!
+
+        // Convert keypoints into Point2f
+        std::vector<cv::Point2f> points1, points2;
+        for (vector<DMatch>::const_iterator it= matches.begin(); it!= matches.end(); ++it) 
+        {    
+            // Get the position of keypoints1
+            keypoints1_conv.push_back(keypoints1[it->queryIdx].pt); //query per keypoints1
+            // Get the position of keypoints2
+            keypoints2_conv.push_back(keypoints2[it->trainIdx].pt); //train per keypoints2
+        }
+
+        Mat E = findEssentialMat(keypoints1_conv, keypoints2_conv, cameraMatrix);
+
+        //To do: Inlier!
 
 
 
@@ -340,11 +356,11 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 
 }
 
-std::vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2)
+vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2)
 {
     //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
     Ptr<SURF> detector = SURF::create( minHessian );
-    std::vector<KeyPoint> keypoints1, keypoints2;
+    vector<KeyPoint> keypoints1, keypoints2;
     Mat descriptors1, descriptors2;
     detector->detectAndCompute( img1, noArray(), keypoints1, descriptors1 );
     detector->detectAndCompute( img2, noArray(), keypoints2, descriptors2 );
@@ -352,7 +368,7 @@ std::vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2)
     //-- Step 2: Matching descriptor vectors with a brute force matcher
     // Since SURF is a floating-point descriptor NORM_L2 is used
     Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
-    std::vector< DMatch > matches;
+    vector< DMatch > matches;
     matcher->match( descriptors1, descriptors2, matches );
 
     if(showMatch)
