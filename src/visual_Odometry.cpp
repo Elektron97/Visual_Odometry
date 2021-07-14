@@ -56,8 +56,13 @@ const double k2 = 0.0;
 const double p1 = 0.0;
 const double p2 = 0.0;
 
+//showImg utility
+const int fps = 33;
+bool showFrame = false;
+bool showMatch = true;
+
 //SURF parameters
-int minHessian = 400;
+int minHessian = 100;
 
 const double focal_length[] = {fx, fy};
 const double principalPoint[] = {ccxLeft, ccyLeft};
@@ -87,12 +92,12 @@ sensor_msgs::CompressedImage camera_dx;
 
 nav_msgs::Odometry ground_truth;
 
-int discard = 0;
+int discard = 0; //Posso usare header, time_stamp ecc? <- Imparare ad usarlo!
 
 /*FUNCTIONS DECLARATION*/
 Mat ros2cv(sensor_msgs::CompressedImage image);
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
-std::vector<KeyPoint> detectFeatures(Mat undistorted_img, string method);
+void detectAndMatchFeatures(Mat img1, Mat img2);
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -217,11 +222,6 @@ int main(int argc, char **argv)
 	ros::Subscriber sub_cameraSX=node_obj.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
     ros::Subscriber sub_cameraDX=node_obj.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);
 
-    //Image transport funziona SOLO con sensor_msgs/Image e non sensor_msgs/CompressedImage
-    /*image_transport::ImageTransport it(node_obj);
-    image_transport::Subscriber sub_cameraSX = it.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
-    image_transport::Subscriber sub_cameraDX = it.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);*/
-
     /*Esiste anche image_transport per i compressed! Cerca!*/
     /*http://wiki.ros.org/compressed_image_transport*/
     
@@ -239,24 +239,16 @@ int main(int argc, char **argv)
     ROS_WARN("START!");
 
     /*INITIALIZATION*/
-    Mat first_image = ros2cv(camera_sx);
-    /*int first_image_size[] = {first_image.size().width, first_image.size().height};
-    ROS_INFO("First Image Size:");
-    ROS_INFO("Width: %d", first_image_size[0]);
-    ROS_INFO("Heigth: %d", first_image_size[1]);*/
-
     //Define Camera matrix and Distortion Coeff.
     Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
     Mat distortionCoeff = (Mat1d(1, 4) << k1, k2, p1, p2);
 
     //Undistort Image
-    Mat undistorted_img = get_image(first_image, cameraMatrix, distortionCoeff);
+    Mat prev_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
 
-    //Detect and Match Features
-    //al momento solo il metodo indicato: SURF
-    std::vector<KeyPoint> keypoints = detectFeatures(undistorted_img, detector_method);
-
-    /*Fail Detection: Meglio se incorporo dentro Detect and Match Features ?*/
+    /*GET GROUND TRUTH POSE*/
+    //Creare Matrice da Quaternione
+    //Vettore traslazione
 
     /*ITERATIONS*/
     while(ros::ok())
@@ -268,13 +260,18 @@ int main(int argc, char **argv)
             break;
 
         /*SHOW IMAGE FROM BAG FILE*/
-        Mat image_test = ros2cv(camera_sx);
-        if( image_test.empty() ) return -1;
-        namedWindow( "CameraSX", cv::WINDOW_AUTOSIZE );
-        imshow("CameraSX", image_test);
-        waitKey(33); 
+        if(showFrame)
+        {
+            namedWindow("Image", cv::WINDOW_AUTOSIZE);
+            imshow("Image", ros2cv(camera_sx));
+            waitKey(fps);
+        }
+
+        Mat curr_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
+
+        detectAndMatchFeatures(prev_img, curr_img);
+        prev_img = curr_img; 
     }
-    destroyWindow("CameraSX");
     ROS_WARN("Video Finito!");
 
     return 0;
@@ -315,19 +312,28 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 
 }
 
-std::vector<KeyPoint> detectFeatures(Mat undistorted_img, string method)
+void detectAndMatchFeatures(Mat img1, Mat img2)
 {
-    //-- Step 1: Detect the keypoints using SURF Detector
-    Ptr<SURF> detector = SURF::create(minHessian);
-    std::vector<KeyPoint> keypoints;
-    detector->detect( undistorted_img, keypoints );
-    
-    //-- Draw keypoints
-    /*Mat img_keypoints;
-    drawKeypoints(undistorted_img, keypoints, img_keypoints);
-    //-- Show detected (drawn) keypoints
-    imshow("SURF Keypoints", img_keypoints );
-    waitKey(33);*/
+    //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
+    Ptr<SURF> detector = SURF::create( minHessian );
+    std::vector<KeyPoint> keypoints1, keypoints2;
+    Mat descriptors1, descriptors2;
+    detector->detectAndCompute( img1, noArray(), keypoints1, descriptors1 );
+    detector->detectAndCompute( img2, noArray(), keypoints2, descriptors2 );
 
-    return keypoints;
+    //-- Step 2: Matching descriptor vectors with a brute force matcher
+    // Since SURF is a floating-point descriptor NORM_L2 is used
+    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
+    std::vector< DMatch > matches;
+    matcher->match( descriptors1, descriptors2, matches );
+
+    if(showMatch)
+    {
+        //-- Draw matches
+        Mat img_matches;
+        drawMatches( img1, keypoints1, img2, keypoints2, matches, img_matches );
+        //-- Show detected matches
+        imshow("Matches", img_matches );
+        waitKey(fps);
+    }
 }
