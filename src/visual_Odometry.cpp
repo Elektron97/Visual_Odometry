@@ -92,7 +92,7 @@ int discard = 0;
 /*FUNCTIONS DECLARATION*/
 Mat ros2cv(sensor_msgs::CompressedImage image);
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
-void detectAndShow(Mat undistorted_img);
+Ptr<SURF> detectFeatures(Mat undistorted_img, string method);
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -254,6 +254,7 @@ int main(int argc, char **argv)
 
     //Detect and Match Features
     //al momento solo il metodo indicato: SURF
+    Ptr<SURF> keypoints = detectFeatures(undistorted_img, detector_method);
 
     /*Fail Detection: Meglio se incorporo dentro Detect and Match Features ?*/
 
@@ -268,13 +269,12 @@ int main(int argc, char **argv)
 
         /*SHOW IMAGE FROM BAG FILE*/
         Mat image_test = ros2cv(camera_sx);
-        detectAndShow(image_test);
-        /*if( image_test.empty() ) return -1;
+        if( image_test.empty() ) return -1;
         namedWindow( "CameraSX", cv::WINDOW_AUTOSIZE );
         imshow("CameraSX", image_test);
-        waitKey(33); */
+        waitKey(33); 
     }
-    destroyWindow("CameraSX");
+    //destroyWindow("CameraSX");
     ROS_WARN("Video Finito!");
 
     return 0;
@@ -315,16 +315,24 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 
 }
 
-void detectAndShow(Mat undistorted_img)
+Ptr<SURF> detectFeatures(Mat undistorted_img, string method)
 {
-    //-- Step 1: Detect the keypoints using SURF Detector
-    Ptr<SURF> detector = SURF::create(minHessian);
-    std::vector<KeyPoint> keypoints;
-    detector->detect( undistorted_img, keypoints );
-    //-- Draw keypoints
-    Mat img_keypoints;
-    drawKeypoints(undistorted_img, keypoints, img_keypoints);
-    //-- Show detected (drawn) keypoints
-    imshow("SURF Keypoints", img_keypoints );
-    waitKey(33);
+    if(method == "SURF")
+    {
+        //-- Step 1: Detect the keypoints using SURF Detector
+        Ptr<SURF> detector = SURF::create(minHessian);
+        std::vector<KeyPoint> keypoints;
+        detector->detect( undistorted_img, keypoints );
+        
+        //-- Draw keypoints
+        /*Mat img_keypoints;
+        drawKeypoints(undistorted_img, keypoints, img_keypoints);
+        //-- Show detected (drawn) keypoints
+        imshow("SURF Keypoints", img_keypoints );
+        waitKey(33);*/
+    }
+    else
+    {
+        ROS_WARN("Metodo ancora non implementato o sconosciuto.");
+    }
 }

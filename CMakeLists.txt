@@ -24,16 +24,6 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_executable(show_image src/show_image.cpp)
-target_link_libraries(show_image 
-${catkin_LIBRARIES}
-${OpenCV_LIBRARIES})
-
-add_executable(show_video src/show_video.cpp)
-target_link_libraries(show_video 
-${catkin_LIBRARIES}
-${OpenCV_LIBRARIES})
-
 add_executable(visual_Odometry src/visual_Odometry.cpp)
 target_link_libraries(visual_Odometry 
 ${catkin_LIBRARIES}
