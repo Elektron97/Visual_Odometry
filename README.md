@@ -6,4 +6,8 @@ Progetto SGN: Visual Odometry
 
 -provare cv_bridge con opencv_contrib 3.2.0.
 
--Essential Matrix e Epipolar Geometry.
+-Inlier per Essential Matrix.
+
+-Visualizzare gli inlier dopo RANSAC.
+
+-Epipolar Geometry.
