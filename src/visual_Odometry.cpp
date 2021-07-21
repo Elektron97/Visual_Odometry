@@ -297,9 +297,9 @@ int main(int argc, char **argv)
         KeyPoint::convert(keypoints2, keypoints2_conv);*/
 
         //Non va bene perche' devo tenere conto del match!
+        //Eseguendo infatti ho problemi di dimensioni!
 
         // Convert keypoints into Point2f
-        std::vector<cv::Point2f> points1, points2;
         for (vector<DMatch>::const_iterator it= matches.begin(); it!= matches.end(); ++it) 
         {    
             // Get the position of keypoints1
@@ -308,9 +308,66 @@ int main(int argc, char **argv)
             keypoints2_conv.push_back(keypoints2[it->trainIdx].pt); //train per keypoints2
         }
 
-        Mat E = findEssentialMat(keypoints1_conv, keypoints2_conv, cameraMatrix);
+        vector<uchar> RANSAC_status;
 
-        //To do: Inlier!
+        //default values: RANSAC, prob =0.999, threshold = 1.0
+        Mat E = findEssentialMat(keypoints1_conv, keypoints2_conv, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_status);
+
+        //RANSAC_status, vettore contenente N elementi (N = length(keypoints)) in cui indica:
+        // 0 = outlier
+        // 1 = inlier
+
+        int outlierCount = 0;
+        for(int i = 0; i < RANSAC_status.size(); i++)
+        {
+            if(RANSAC_status[i] == 0)
+                outlierCount ++;
+
+        }
+
+        int inlierCount = RANSAC_status.size() - outlierCount;
+
+        // The above three variables are used to save the inner point and the matching relationship
+        vector<Point2f> leftInlier;
+        vector<Point2f> rightInlier;
+        vector<DMatch> inlierMatches;
+        
+
+        inlierMatches.resize(inlierCount);
+        leftInlier.resize(inlierCount);
+        rightInlier.resize(inlierCount);
+
+        /*inlierCount = 0;
+        for (int i=0; i<RANSAC_status.size(); i++)
+        {
+            if (RANSAC_status[i] != 0)
+            {
+                leftInlier[inlierCount].x = keypoints1_conv.at<float>(i, 0);
+                leftInlier[inlierCount].y = keypoints1_conv.at<float>(i, 1);
+                rightInlier[inlierCount].x = keypoints2_conv.at<float>(i, 0);
+                rightInlier[inlierCount].y = keypoints2_conv.at<float>(i, 1);
+                inlierMatches[inlierCount].queryIdx = inlierCount;
+                inlierMatches[inlierCount].trainIdx = inlierCount;
+                inlierCount++;
+            }
+        }*/
+        
+        /*/ / Convert the inner point to the format that drawMatches can use
+        vector<KeyPoint> key1(InlinerCount);
+        vector<KeyPoint> key2(InlinerCount);
+        KeyPoint::convert(m_LeftInlier, key1);
+        KeyPoint::convert(m_RightInlier, key2);
+        
+        // Display the inner point matching after the calculation F
+        // Mat m_matLeftImage;
+        // Mat m_matRightImage;
+        // The above two variables hold the left and right images.
+        Mat OutImage;
+        drawMatches(m_matLeftImage, key1, m_matRightImage, key2, m_InlierMatches, OutImage);
+        cvNamedWindow( "Match features", 1);
+        cvShowImage("Match features", &(IplImage(OutImage)));
+        cvWaitKey( 0 );
+        cvDestroyWindow( "Match features" );*/
 
 
 
