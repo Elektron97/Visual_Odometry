@@ -98,6 +98,9 @@ Mat ros2cv(sensor_msgs::CompressedImage image);
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
 vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2);
 void show_info(int outlier, int inlier, int keypoints_matched);
+bool isRotationMatrix(Mat &R); //perche' &R?
+Vec3f rotationMatrixToEulerAngles(Mat &R);
+
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -329,7 +332,9 @@ int main(int argc, char **argv)
 
         int inlierCount = RANSAC_status.size() - outlierCount;
 
-        show_info(outlierCount, inlierCount, RANSAC_status.size());
+        //PROBLEMA: Troppi OUTLIER!!! Essential Matrix non esatta?
+
+        //show_info(outlierCount, inlierCount, RANSAC_status.size());
 
         // The above three variables are used to save the inner point and the matching relationship
         vector<Point2f> leftInlier;
@@ -370,13 +375,24 @@ int main(int argc, char **argv)
             waitKey(fps);
         }
 
-        /*TO DO: relativeCameraPose*/
-        // [orientation, location] = relativeCameraPose(E, cameraIntrinsic, inlier1, inlier2);
-        //In OpenCV: cv::recoverPose!
+        //Nota: recoverPose di fatto consiste in una decomposeEssentialMatrix
+        //dunque, sarebbe possibile evitare tutta la parte in cui si selezionano
+        //gli inlier. Tuttavia la lascio, in modo da poter evidenziare i progressi.
+
+        //R: Matrice di Rotazione
+        //t: traslazione
+        Mat R, t; 
+
+        //uso left e rightInlier perche' non posso usare <KeyPoint>
+        recoverPose(E, leftInlier, rightInlier, cameraMatrix, R, t);
+
+        //rotm2eul
+        Vec3f euler_angles = rotationMatrixToEulerAngles(R);
+    
+        //yaw: 
+        float yaw_angle = euler_angles(0);
 
         
-
-
 
 
 
@@ -456,4 +472,46 @@ void show_info(int outlier, int inlier, int keypoints_matched)
     ROS_INFO("Num. Kepyoints Matched: %d", keypoints_matched);
     ROS_INFO("Num. Detected Outliers: %d", outlier);
     ROS_INFO("Num. Inlier: %d", inlier);
+}
+
+// Checks if a matrix is a valid rotation matrix.
+bool isRotationMatrix(Mat &R)
+{
+    Mat Rt;
+    transpose(R, Rt);
+    Mat shouldBeIdentity = Rt * R;
+    Mat I = Mat::eye(3,3, shouldBeIdentity.type());
+
+    return  norm(I, shouldBeIdentity) < 1e-6;
+
+}
+
+// Calculates rotation matrix to euler angles
+// The result is the same as MATLAB except the order
+// of the euler angles ( x and z are swapped ).
+
+Vec3f rotationMatrixToEulerAngles(Mat &R)
+{
+
+    assert(isRotationMatrix(R));
+
+    float sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
+
+    bool singular = sy < 1e-6; // If
+
+    float x, y, z;
+    if (!singular)
+    {
+        x = atan2(R.at<double>(2,1) , R.at<double>(2,2));
+        y = atan2(-R.at<double>(2,0), sy);
+        z = atan2(R.at<double>(1,0), R.at<double>(0,0));
+    }
+    else
+    {
+        x = atan2(-R.at<double>(1,2), R.at<double>(1,1));
+        y = atan2(-R.at<double>(2,0), sy);
+        z = 0;
+    }
+    return Vec3f(x, y, z);
+
 }
