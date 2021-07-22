@@ -60,6 +60,7 @@ const double p2 = 0.0;
 const int fps = 33;
 bool showFrame = false;
 bool showMatch = true;
+bool showInlier = true;
 
 //SURF parameters
 int minHessian = 100;
@@ -285,7 +286,7 @@ int main(int argc, char **argv)
             Mat img_matches;
             drawMatches( prev_img, keypoints1, curr_img, keypoints2, matches, img_matches );
             //-- Show detected matches
-            imshow("Matches", img_matches );
+            imshow("Matches before RANSAC", img_matches );
             waitKey(fps);
         }
 
@@ -337,37 +338,34 @@ int main(int argc, char **argv)
         leftInlier.resize(inlierCount);
         rightInlier.resize(inlierCount);
 
-        /*inlierCount = 0;
+        inlierCount = 0;
         for (int i=0; i<RANSAC_status.size(); i++)
         {
             if (RANSAC_status[i] != 0)
             {
-                leftInlier[inlierCount].x = keypoints1_conv.at<float>(i, 0);
-                leftInlier[inlierCount].y = keypoints1_conv.at<float>(i, 1);
-                rightInlier[inlierCount].x = keypoints2_conv.at<float>(i, 0);
-                rightInlier[inlierCount].y = keypoints2_conv.at<float>(i, 1);
+                leftInlier[inlierCount] = keypoints1_conv.at(i);
+                rightInlier[inlierCount] = keypoints2_conv.at(i);
                 inlierMatches[inlierCount].queryIdx = inlierCount;
                 inlierMatches[inlierCount].trainIdx = inlierCount;
                 inlierCount++;
             }
-        }*/
+        }
         
-        /*/ / Convert the inner point to the format that drawMatches can use
-        vector<KeyPoint> key1(InlinerCount);
-        vector<KeyPoint> key2(InlinerCount);
-        KeyPoint::convert(m_LeftInlier, key1);
-        KeyPoint::convert(m_RightInlier, key2);
+        // Convert the inner point to the format that drawMatches can use
+        vector<KeyPoint> keypoints_inlier1(inlierCount);
+        vector<KeyPoint> keypoints_inlier2(inlierCount);
+        KeyPoint::convert(leftInlier, keypoints_inlier1);
+        KeyPoint::convert(rightInlier, keypoints_inlier2);
         
-        // Display the inner point matching after the calculation F
-        // Mat m_matLeftImage;
-        // Mat m_matRightImage;
-        // The above two variables hold the left and right images.
-        Mat OutImage;
-        drawMatches(m_matLeftImage, key1, m_matRightImage, key2, m_InlierMatches, OutImage);
-        cvNamedWindow( "Match features", 1);
-        cvShowImage("Match features", &(IplImage(OutImage)));
-        cvWaitKey( 0 );
-        cvDestroyWindow( "Match features" );*/
+        if(showInlier)
+        {
+            //-- Draw matches
+            Mat img_matches_ransac;
+            drawMatches( prev_img, keypoints_inlier1, curr_img, keypoints_inlier2, inlierMatches, img_matches_ransac);
+            //-- Show detected matches
+            imshow("Matches after RANSAC", img_matches_ransac);
+            waitKey(fps);
+        }
 
 
 
