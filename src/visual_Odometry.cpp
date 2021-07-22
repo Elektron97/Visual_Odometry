@@ -97,6 +97,7 @@ nav_msgs::Odometry ground_truth;
 Mat ros2cv(sensor_msgs::CompressedImage image);
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
 vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2);
+void show_info(int outlier, int inlier, int keypoints_matched);
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -328,6 +329,8 @@ int main(int argc, char **argv)
 
         int inlierCount = RANSAC_status.size() - outlierCount;
 
+        show_info(outlierCount, inlierCount, RANSAC_status.size());
+
         // The above three variables are used to save the inner point and the matching relationship
         vector<Point2f> leftInlier;
         vector<Point2f> rightInlier;
@@ -366,6 +369,14 @@ int main(int argc, char **argv)
             imshow("Matches after RANSAC", img_matches_ransac);
             waitKey(fps);
         }
+
+        /*TO DO: relativeCameraPose*/
+        // [orientation, location] = relativeCameraPose(E, cameraIntrinsic, inlier1, inlier2);
+        //In OpenCV: cv::recoverPose!
+
+        
+
+
 
 
 
@@ -437,4 +448,12 @@ vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2)
     }
 
     return matches;
+}
+
+void show_info(int outlier, int inlier, int keypoints_matched)
+{
+    ROS_INFO("********RANSAC ALGORITHM*********");
+    ROS_INFO("Num. Kepyoints Matched: %d", keypoints_matched);
+    ROS_INFO("Num. Detected Outliers: %d", outlier);
+    ROS_INFO("Num. Inlier: %d", inlier);
 }
