@@ -100,7 +100,7 @@ vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2);
 void show_info(int outlier, int inlier, int keypoints_matched);
 bool isRotationMatrix(Mat &R); //perche' &R?
 Vec3f rotationMatrixToEulerAngles(Mat &R);
-Mat *cameraPoseToExtrinsic(Mat R_in, Mat t_in);
+vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in);
 
 
 /*CALLBACK*/
@@ -402,16 +402,17 @@ int main(int argc, char **argv)
         
         /*TRIANGULATE POINTS AND ESTIMATE SCALE FACTOR*/
         //MATLAB cameraPoseExtrinsic
+        //Vettori colonna NON riga!
         //World coordinates -> Camera coordinates
         
         //Camera Pose in World Frame
         Mat R_world = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
-        Mat t_world = (Mat1d(1, 3) << 0, 0, 0);
+        Mat t_world = (Mat1d(3, 1) << 0, 0, 0);
 
-        Mat *worldPtr = cameraPoseToExtrinsic(R_world, t_world);
-        Mat *currPtr = cameraPoseToExtrinsic(R.t(), t.t()); //da rivedere!
+        vector<Mat> worldTransf = cameraPoseToExtrinsic(R_world, t_world);
+        vector<Mat> currTransf = cameraPoseToExtrinsic(R, t); 
 
-        //Triangulate
+        //To do: cameraMatrix
 
 
 
@@ -539,11 +540,11 @@ Vec3f rotationMatrixToEulerAngles(Mat &R)
 
 }
 
-Mat *cameraPoseToExtrinsic(Mat R_in, Mat t_in)
+vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in)
 {
     Mat R_out = R_in.t();
-    Mat t_out = -t_in*R_in.t();
-    static Mat output[] = {R_out, t_out};
+    Mat t_out = -R_in.t()*t_in;
+    vector<Mat> output = {R_out, t_out};
     
     return output;
 }
