@@ -32,7 +32,7 @@
 //msg from uuv ???
 
 /*DEFINE*/
-#define FIRST_IMAGE 2 //580
+#define FIRST_IMAGE 580
 #define viewId_stop 810
 #define MIN_NUM_FEATURES 20
 #define FREQUENCY 10
@@ -101,6 +101,8 @@ void show_info(int outlier, int inlier, int keypoints_matched);
 bool isRotationMatrix(Mat &R); //perche' &R?
 Vec3f rotationMatrixToEulerAngles(Mat &R);
 vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in);
+Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic);
+float scaleFactor(float distance, Mat worldPoints);
 
 
 /*CALLBACK*/
@@ -412,7 +414,28 @@ int main(int argc, char **argv)
         vector<Mat> worldTransf = cameraPoseToExtrinsic(R_world, t_world);
         vector<Mat> currTransf = cameraPoseToExtrinsic(R, t); 
 
-        //To do: cameraMatrix
+        //To do: cameraMatrix -> [Intrinsic]*[R | t]
+        //perche' non usare projectPoints?
+
+        Mat worldMatrix = projectionMatrix(worldTransf[0], worldTransf[1], cameraMatrix); 
+        Mat currMatrix = projectionMatrix(currTransf[0], worldTransf[1], cameraMatrix); 
+
+        cv::Mat world_points; //(4, leftInlier.size(), CV_64F);
+        triangulatePoints(worldMatrix, currMatrix, leftInlier, rightInlier, world_points);
+        //Perche' fa tutto 0?
+
+        //To do: Reprojection Error
+        //Reietto worldpoints che hanno troppo
+        //reprojection error
+
+        //Scale Factor
+        float SF = scaleFactor(distance, world_points);
+        
+        x *= SF;
+        y *= SF;
+
+        
+
 
 
 
@@ -498,9 +521,10 @@ void show_info(int outlier, int inlier, int keypoints_matched)
     ROS_INFO("Num. Inlier: %d", inlier);
 }
 
-// Checks if a matrix is a valid rotation matrix.
 bool isRotationMatrix(Mat &R)
 {
+    // Checks if a matrix is a valid rotation matrix.
+
     Mat Rt;
     transpose(R, Rt);
     Mat shouldBeIdentity = Rt * R;
@@ -510,12 +534,11 @@ bool isRotationMatrix(Mat &R)
 
 }
 
-// Calculates rotation matrix to euler angles
-// The result is the same as MATLAB except the order
-// of the euler angles ( x and z are swapped ).
-
 Vec3f rotationMatrixToEulerAngles(Mat &R)
 {
+    // Calculates rotation matrix to euler angles
+    // The result is the same as MATLAB except the order
+    // of the euler angles ( x and z are swapped ).
 
     assert(isRotationMatrix(R));
 
@@ -547,4 +570,36 @@ vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in)
     vector<Mat> output = {R_out, t_out};
     
     return output;
+}
+
+Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic)
+{
+    Mat R_t;
+    hconcat(R, t, R_t);
+
+    return cameraIntrinsic*R_t; 
+}
+
+float scaleFactor(float distance, Mat worldPoints)
+{
+    float Zsum = 0;
+    int N = worldPoints.cols;
+
+    //Calcolo la media
+    for(int i = 0; i < N; i++)
+    {
+        Zsum += worldPoints.at<float>(2, i);
+        ROS_INFO("test: %f", worldPoints.at<float>(2, i));
+    } 
+    
+    float Zmean = Zsum / N;
+
+    if(Zmean == 0)
+    {
+        //ROS_ERROR("Z pari a 0!");
+        return 1.0; //per continuare il codice
+    }
+
+    else
+        return distance/Zmean;
 }
