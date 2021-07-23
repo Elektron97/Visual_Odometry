@@ -6,4 +6,10 @@ Progetto SGN: Visual Odometry
 
 -provare cv_bridge con opencv_contrib 3.2.0.
 
--Relative Camera Pose.
+-World Position.
+
+-Ri studiare la teoria. <- Capisci bene i passaggi!
+
+-Organizzare il codice in funzioni che prese singolarmente funzionano!
+
+-Rifare triangulatePosition perchè vengono tutti 0 e non ha senso!!! Cerca anche nel libro!
