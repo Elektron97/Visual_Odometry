@@ -32,7 +32,7 @@
 //msg from uuv ???
 
 /*DEFINE*/
-#define FIRST_IMAGE 580
+#define FIRST_IMAGE 2 //580
 #define viewId_stop 810
 #define MIN_NUM_FEATURES 20
 #define FREQUENCY 10
@@ -59,7 +59,7 @@ const double p2 = 0.0;
 //showImg utility
 const int fps = 33;
 bool showFrame = false;
-bool showMatch = true;
+bool showMatch = false;
 bool showInlier = true;
 
 //SURF parameters
@@ -100,6 +100,7 @@ vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2);
 void show_info(int outlier, int inlier, int keypoints_matched);
 bool isRotationMatrix(Mat &R); //perche' &R?
 Vec3f rotationMatrixToEulerAngles(Mat &R);
+Mat *cameraPoseToExtrinsic(Mat R_in, Mat t_in);
 
 
 /*CALLBACK*/
@@ -384,15 +385,37 @@ int main(int argc, char **argv)
         Mat R, t; 
 
         //uso left e rightInlier perche' non posso usare <KeyPoint>
-        recoverPose(E, leftInlier, rightInlier, cameraMatrix, R, t);
+        recoverPose(E, leftInlier, rightInlier, cameraMatrix, R, t); //usare la mask!
 
         //rotm2eul
         Vec3f euler_angles = rotationMatrixToEulerAngles(R);
     
+        /*NAV 2D*/
+        //x, y:
+        float x = t.at<float>(0);
+        float y = t.at<float>(1);
         //yaw: 
         float yaw_angle = euler_angles(0);
 
+        //getLastAvaibleAltitude
+        float distance = laser.ranges[0]; //from MATLAB laser_msg{i, 1}.Ranges(1);
         
+        /*TRIANGULATE POINTS AND ESTIMATE SCALE FACTOR*/
+        //MATLAB cameraPoseExtrinsic
+        //World coordinates -> Camera coordinates
+        
+        //Camera Pose in World Frame
+        Mat R_world = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
+        Mat t_world = (Mat1d(1, 3) << 0, 0, 0);
+
+        Mat *worldPtr = cameraPoseToExtrinsic(R_world, t_world);
+        Mat *currPtr = cameraPoseToExtrinsic(R.t(), t.t()); //da rivedere!
+
+        //Triangulate
+
+
+
+
 
 
 
@@ -514,4 +537,13 @@ Vec3f rotationMatrixToEulerAngles(Mat &R)
     }
     return Vec3f(x, y, z);
 
+}
+
+Mat *cameraPoseToExtrinsic(Mat R_in, Mat t_in)
+{
+    Mat R_out = R_in.t();
+    Mat t_out = -t_in*R_in.t();
+    static Mat output[] = {R_out, t_out};
+    
+    return output;
 }
