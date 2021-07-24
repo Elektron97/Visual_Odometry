@@ -10,6 +10,6 @@ Progetto SGN: Visual Odometry
 
 -Ri studiare la teoria. <- Capisci bene i passaggi!
 
--Organizzare il codice in funzioni che prese singolarmente funzionano!
-
 -Rifare triangulatePosition perchè vengono tutti 0 e non ha senso!!! Cerca anche nel libro!
+
+-Includere le funzioni e i parametri dentro include.
