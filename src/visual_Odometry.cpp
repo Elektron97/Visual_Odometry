@@ -93,17 +93,36 @@ sensor_msgs::CompressedImage camera_dx;
 
 nav_msgs::Odometry ground_truth;
 
+/*STRUCTS*/
+struct KeyPoint_Match
+{
+    vector<KeyPoint> Kpoints1;
+    vector<KeyPoint> Kpoints2;
+    vector<DMatch> match;
+};
+
+struct KpAsPoint2f_Match
+{
+    vector<Point2f> Kpoints1;
+    vector<Point2f> Kpoints2;
+    vector<DMatch> match;
+};
+
 /*FUNCTIONS DECLARATION*/
 Mat ros2cv(sensor_msgs::CompressedImage image);
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
-vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2);
+KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2);
+KpAsPoint2f_Match keyPoint2Point2f(KeyPoint_Match kp_match);
+KeyPoint_Match point2f2keyPoint(KpAsPoint2f_Match kp_pnt2f);
 void show_info(int outlier, int inlier, int keypoints_matched);
+KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat cameraMatrix);
+void show_inlier(KpAsPoint2f_Match inlier_match_p2f, Mat prev_img, Mat curr_img);
+vector<Mat> estimateRelativePose(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat cameraMatrix);
 bool isRotationMatrix(Mat &R); //perche' &R?
 Vec3f rotationMatrixToEulerAngles(Mat &R);
 vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in);
 Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic);
 float scaleFactor(float distance, Mat worldPoints);
-
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -249,10 +268,7 @@ int main(int argc, char **argv)
 
     //Undistort Image
     Mat prev_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
-
-    /*GET GROUND TRUTH POSE*/
-    //Creare Matrice da Quaternione
-    //Vettore traslazione
+    uint32_t prev_time = camera_sx.header.seq;
 
     /*ITERATIONS*/
     while(ros::ok())
@@ -274,125 +290,24 @@ int main(int argc, char **argv)
         /*FEATURE MATCHING*/
         Mat curr_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
 
-        //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
-        Ptr<SURF> detector = SURF::create( minHessian );
-        vector<KeyPoint> keypoints1, keypoints2;
-        Mat descriptors1, descriptors2;
-        detector->detectAndCompute( prev_img, noArray(), keypoints1, descriptors1 );
-        detector->detectAndCompute( curr_img, noArray(), keypoints2, descriptors2 );
-
-        //-- Step 2: Matching descriptor vectors with a brute force matcher
-        // Since SURF is a floating-point descriptor NORM_L2 is used
-        Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
-        vector< DMatch > matches;
-        matcher->match( descriptors1, descriptors2, matches );
-
-        if(showMatch)
-        {
-            //-- Draw matches
-            Mat img_matches;
-            drawMatches( prev_img, keypoints1, curr_img, keypoints2, matches, img_matches );
-            //-- Show detected matches
-            imshow("Matches before RANSAC", img_matches );
-            waitKey(fps);
-        }
+        KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
 
         /*POSE ESTIMATION*/
-        //Stima dell'Essential Matrix -> cv::findEssentialMat()
-        //Essa richiede i Keypoint in vector<Point2d>, non <KeyPoint>
-        vector<Point2f> keypoints1_conv, keypoints2_conv;
-        /*KeyPoint::convert(keypoints1, keypoints1_conv);
-        KeyPoint::convert(keypoints2, keypoints2_conv);*/
+        KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
 
-        //Non va bene perche' devo tenere conto del match!
-        //Eseguendo infatti ho problemi di dimensioni!
+        vector<Mat> relativeTransf = estimateRelativePose(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix);
 
-        // Convert keypoints into Point2f
-        for (vector<DMatch>::const_iterator it= matches.begin(); it!= matches.end(); ++it) 
-        {    
-            // Get the position of keypoints1
-            keypoints1_conv.push_back(keypoints1[it->queryIdx].pt); //query per keypoints1
-            // Get the position of keypoints2
-            keypoints2_conv.push_back(keypoints2[it->trainIdx].pt); //train per keypoints2
-        }
+        Mat R = relativeTransf[0];
+        Mat t = relativeTransf[1];
+        //Mat RANSAC_mask = relativeTransf[2]; Al momento inutile
 
-        vector<uchar> RANSAC_status;
-
-        //default values: RANSAC, prob =0.999, threshold = 1.0
-        Mat E = findEssentialMat(keypoints1_conv, keypoints2_conv, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_status);
-
-        //RANSAC_status, vettore contenente N elementi (N = length(keypoints)) in cui indica:
-        // 0 = outlier
-        // 1 = inlier
-
-        int outlierCount = 0;
-        for(int i = 0; i < RANSAC_status.size(); i++)
-        {
-            if(RANSAC_status[i] == 0)
-                outlierCount ++;
-
-        }
-
-        int inlierCount = RANSAC_status.size() - outlierCount;
-
-        //PROBLEMA: Troppi OUTLIER!!! Essential Matrix non esatta?
-
-        //show_info(outlierCount, inlierCount, RANSAC_status.size());
-
-        // The above three variables are used to save the inner point and the matching relationship
-        vector<Point2f> leftInlier;
-        vector<Point2f> rightInlier;
-        vector<DMatch> inlierMatches;
-        
-
-        inlierMatches.resize(inlierCount);
-        leftInlier.resize(inlierCount);
-        rightInlier.resize(inlierCount);
-
-        inlierCount = 0;
-        for (int i=0; i<RANSAC_status.size(); i++)
-        {
-            if (RANSAC_status[i] != 0)
-            {
-                leftInlier[inlierCount] = keypoints1_conv.at(i);
-                rightInlier[inlierCount] = keypoints2_conv.at(i);
-                inlierMatches[inlierCount].queryIdx = inlierCount;
-                inlierMatches[inlierCount].trainIdx = inlierCount;
-                inlierCount++;
-            }
-        }
-        
-        // Convert the inner point to the format that drawMatches can use
-        vector<KeyPoint> keypoints_inlier1(inlierCount);
-        vector<KeyPoint> keypoints_inlier2(inlierCount);
-        KeyPoint::convert(leftInlier, keypoints_inlier1);
-        KeyPoint::convert(rightInlier, keypoints_inlier2);
-        
-        if(showInlier)
-        {
-            //-- Draw matches
-            Mat img_matches_ransac;
-            drawMatches( prev_img, keypoints_inlier1, curr_img, keypoints_inlier2, inlierMatches, img_matches_ransac);
-            //-- Show detected matches
-            imshow("Matches after RANSAC", img_matches_ransac);
-            waitKey(fps);
-        }
-
-        //Nota: recoverPose di fatto consiste in una decomposeEssentialMatrix
-        //dunque, sarebbe possibile evitare tutta la parte in cui si selezionano
-        //gli inlier. Tuttavia la lascio, in modo da poter evidenziare i progressi.
-
-        //R: Matrice di Rotazione
-        //t: traslazione
-        Mat R, t; 
-
-        //uso left e rightInlier perche' non posso usare <KeyPoint>
-        recoverPose(E, leftInlier, rightInlier, cameraMatrix, R, t); //usare la mask!
+        //Show Inlier
+        show_inlier(extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix), prev_img, curr_img);
 
         //rotm2eul
         Vec3f euler_angles = rotationMatrixToEulerAngles(R);
     
-        /*NAV 2D*/
+        //NAV 2D
         //x, y:
         float x = t.at<float>(0);
         float y = t.at<float>(1);
@@ -421,29 +336,35 @@ int main(int argc, char **argv)
         Mat currMatrix = projectionMatrix(currTransf[0], worldTransf[1], cameraMatrix); 
 
         cv::Mat world_points; //(4, leftInlier.size(), CV_64F);
-        triangulatePoints(worldMatrix, currMatrix, leftInlier, rightInlier, world_points);
+        //triangulatePoints(worldMatrix, currMatrix, leftInlier, rightInlier, world_points);
         //Perche' fa tutto 0?
 
         //To do: Reprojection Error
         //Reietto worldpoints che hanno troppo
         //reprojection error
 
+        /*---------------------------------------------------*/
+
         //Scale Factor
-        float SF = scaleFactor(distance, world_points);
+        /*float SF = scaleFactor(distance, world_points);
         
         x *= SF;
-        y *= SF;
+        y *= SF;*/
 
-        
+        //Linear Velocity Estimation
+        uint32_t deltaT = camera_sx.header.seq - prev_time;
+        //delta Position?
+        //delta Euler?
+
+        /*ABSOLUTE POSE*/
 
 
 
 
 
-
-
-
+        //Update prev data
         prev_img = curr_img; 
+        prev_time = camera_sx.header.seq;
     }
     ROS_WARN("Video Finito!");
 
@@ -485,7 +406,7 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 
 }
 
-vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2)
+KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
 {
     //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
     Ptr<SURF> detector = SURF::create( minHessian );
@@ -510,15 +431,129 @@ vector<DMatch> detectAndMatchFeatures(Mat img1, Mat img2)
         waitKey(fps);
     }
 
-    return matches;
+    KeyPoint_Match output;
+    output.Kpoints1 = keypoints1;
+    output.Kpoints2 = keypoints2;
+    output.match = matches;
+
+    return output;
+}
+
+//Converto tenendo conto del match
+KpAsPoint2f_Match keyPoint2Point2f(KeyPoint_Match kp_match) 
+{
+    // Convert keypoints into Point2f
+    vector<Point2f> keypoints1_conv, keypoints2_conv;
+    for (vector<DMatch>::const_iterator it= kp_match.match.begin(); it!= kp_match.match.end(); ++it) 
+    {    
+        // Get the position of keypoints1
+        keypoints1_conv.push_back(kp_match.Kpoints1[it->queryIdx].pt); //query per keypoints1
+        // Get the position of keypoints2
+        keypoints2_conv.push_back(kp_match.Kpoints2[it->trainIdx].pt); //train per keypoints2
+    }
+
+    KpAsPoint2f_Match kp_p2f;
+    kp_p2f.Kpoints1 = keypoints1_conv;
+    kp_p2f.Kpoints2 = keypoints2_conv;
+    kp_p2f.match = kp_match.match; //invariato
+
+    return kp_p2f;
+}
+
+KeyPoint_Match point2f2keyPoint(KpAsPoint2f_Match kp_pnt2f)
+{
+    KeyPoint_Match kp_match;
+    kp_match.match = kp_pnt2f.match;
+
+    KeyPoint::convert(kp_pnt2f.Kpoints1, kp_match.Kpoints1);
+    KeyPoint::convert(kp_pnt2f.Kpoints2, kp_match.Kpoints2);
+
+    return kp_match;
 }
 
 void show_info(int outlier, int inlier, int keypoints_matched)
 {
     ROS_INFO("********RANSAC ALGORITHM*********");
-    ROS_INFO("Num. Kepyoints Matched: %d", keypoints_matched);
+    ROS_INFO("Num. Keypoints Matched: %d", keypoints_matched);
     ROS_INFO("Num. Detected Outliers: %d", outlier);
     ROS_INFO("Num. Inlier: %d", inlier);
+}
+
+KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat cameraMatrix)
+{
+    vector<uchar> RANSAC_mask;
+    Mat E = findEssentialMat(keypoints1_conv, keypoints2_conv, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_mask);
+    //RANSAC_mask, vettore contenente N elementi (N = length(keypoints)) in cui indica:
+    // 0 = outlier
+    // 1 = inlier
+
+    int outlierCount = 0;
+    for(int i = 0; i < RANSAC_mask.size(); i++)
+    {
+        if(RANSAC_mask[i] == 0)
+            outlierCount ++;
+
+    }
+
+    int inlierCount = RANSAC_mask.size() - outlierCount;
+
+    //PROBLEMA: Troppi OUTLIER! Essential Matrix non esatta?
+    if(showInlier)
+        show_info(outlierCount, inlierCount, RANSAC_mask.size());
+
+    // The above three variables are used to save the inner point and the matching relationship
+    KpAsPoint2f_Match inlier_match_p2f;
+    
+    inlier_match_p2f.match.resize(inlierCount);
+    inlier_match_p2f.Kpoints1.resize(inlierCount);
+    inlier_match_p2f.Kpoints2.resize(inlierCount);
+
+    inlierCount = 0;
+    
+    //Select Inlier -> C'e' un modo migliore!
+    for (int i=0; i<RANSAC_mask.size(); i++)
+    {
+        if (RANSAC_mask[i] != 0)
+        {
+            inlier_match_p2f.Kpoints1[inlierCount] = keypoints1_conv.at(i);
+            inlier_match_p2f.Kpoints2[inlierCount] = keypoints2_conv.at(i);
+            inlier_match_p2f.match[inlierCount].queryIdx = inlierCount;
+            inlier_match_p2f.match[inlierCount].trainIdx = inlierCount;
+            inlierCount++;
+        }
+    }
+
+    return inlier_match_p2f;
+
+}
+
+void show_inlier(KpAsPoint2f_Match inlier_match_p2f, Mat prev_img, Mat curr_img)
+{
+    // Convert the inner point to the format that drawMatches can use
+    KeyPoint_Match inlier_match = point2f2keyPoint(inlier_match_p2f);
+
+    //show inlier
+    if(showInlier)
+    {
+        //-- Draw matches
+        Mat img_matches_ransac;
+        drawMatches( prev_img, inlier_match.Kpoints1, curr_img, inlier_match.Kpoints2, inlier_match.match, img_matches_ransac);
+        //-- Show detected matches
+        imshow("Matches after RANSAC", img_matches_ransac);
+        waitKey(fps);
+    }
+}
+
+vector<Mat> estimateRelativePose(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat cameraMatrix)
+{
+    Mat R, t, RANSAC_mask;
+
+    //default values: RANSAC, prob =0.999, threshold = 1.0
+    Mat E = findEssentialMat(keypoints1_conv, keypoints2_conv, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_mask);
+    recoverPose(E, keypoints1_conv, keypoints2_conv, cameraMatrix, R, t, RANSAC_mask);    
+
+    vector<Mat> transf_inlier = {R, t, RANSAC_mask};
+    return transf_inlier;
 }
 
 bool isRotationMatrix(Mat &R)
@@ -563,6 +598,8 @@ Vec3f rotationMatrixToEulerAngles(Mat &R)
 
 }
 
+//triangulate section
+
 vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in)
 {
     Mat R_out = R_in.t();
@@ -589,7 +626,6 @@ float scaleFactor(float distance, Mat worldPoints)
     for(int i = 0; i < N; i++)
     {
         Zsum += worldPoints.at<float>(2, i);
-        ROS_INFO("test: %f", worldPoints.at<float>(2, i));
     } 
     
     float Zmean = Zsum / N;
