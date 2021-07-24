@@ -19,7 +19,7 @@ find_package(OpenCV 4 REQUIRED)
 catkin_package()
 
 include_directories(
-# include  #-> Da scommentare per librerie
+  include  #-> Da scommentare per librerie
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
