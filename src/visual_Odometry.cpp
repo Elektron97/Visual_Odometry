@@ -122,6 +122,7 @@ bool isRotationMatrix(Mat &R); //perche' &R?
 Vec3f rotationMatrixToEulerAngles(Mat &R);
 vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in);
 Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic);
+Mat triangPoints(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat R, Mat t, Mat cameraMatrix);
 float scaleFactor(float distance, Mat worldPoints);
 
 /*CALLBACK*/
@@ -301,8 +302,11 @@ int main(int argc, char **argv)
         Mat t = relativeTransf[1];
         //Mat RANSAC_mask = relativeTransf[2]; Al momento inutile
 
+        //extract Inlier
+        KpAsPoint2f_Match inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix);
+
         //Show Inlier
-        show_inlier(extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix), prev_img, curr_img);
+        show_inlier(inlier_converted, prev_img, curr_img);
 
         //rotm2eul
         Vec3f euler_angles = rotationMatrixToEulerAngles(R);
@@ -318,38 +322,13 @@ int main(int argc, char **argv)
         float distance = laser.ranges[0]; //from MATLAB laser_msg{i, 1}.Ranges(1);
         
         /*TRIANGULATE POINTS AND ESTIMATE SCALE FACTOR*/
-        //MATLAB cameraPoseExtrinsic
-        //Vettori colonna NON riga!
-        //World coordinates -> Camera coordinates
-        
-        //Camera Pose in World Frame
-        Mat R_world = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
-        Mat t_world = (Mat1d(3, 1) << 0, 0, 0);
-
-        vector<Mat> worldTransf = cameraPoseToExtrinsic(R_world, t_world);
-        vector<Mat> currTransf = cameraPoseToExtrinsic(R, t); 
-
-        //To do: cameraMatrix -> [Intrinsic]*[R | t]
-        //perche' non usare projectPoints?
-
-        Mat worldMatrix = projectionMatrix(worldTransf[0], worldTransf[1], cameraMatrix); 
-        Mat currMatrix = projectionMatrix(currTransf[0], worldTransf[1], cameraMatrix); 
-
-        cv::Mat world_points; //(4, leftInlier.size(), CV_64F);
-        //triangulatePoints(worldMatrix, currMatrix, leftInlier, rightInlier, world_points);
-        //Perche' fa tutto 0?
-
-        //To do: Reprojection Error
-        //Reietto worldpoints che hanno troppo
-        //reprojection error
-
-        /*---------------------------------------------------*/
+        Mat world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
 
         //Scale Factor
-        /*float SF = scaleFactor(distance, world_points);
+        float SF = scaleFactor(distance, world_points);
         
         x *= SF;
-        y *= SF;*/
+        y *= SF;
 
         //Linear Velocity Estimation
         uint32_t deltaT = camera_sx.header.seq - prev_time;
@@ -615,6 +594,31 @@ Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic)
     hconcat(R, t, R_t);
 
     return cameraIntrinsic*R_t; 
+}
+
+Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoints2_conv_inlier, Mat R, Mat t, Mat cameraMatrix)
+{
+    Mat R_world = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
+    Mat t_world = (Mat1d(3, 1) << 0, 0, 0);
+
+    vector<Mat> worldTransf = cameraPoseToExtrinsic(R_world, t_world);
+    vector<Mat> currTransf = cameraPoseToExtrinsic(R, t); 
+
+    //To do: cameraMatrix -> [Intrinsic]*[R | t]
+    //perche' non usare projectPoints?
+
+    Mat worldMatrix = projectionMatrix(worldTransf[0], worldTransf[1], cameraMatrix); 
+    Mat currMatrix = projectionMatrix(currTransf[0], worldTransf[1], cameraMatrix); 
+
+    cv::Mat world_points; //(4, leftInlier.size(), CV_64F);
+    triangulatePoints(worldMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points);
+    //Perche' fa tutto 0?
+
+    //To do: Reprojection Error
+    //Reietto worldpoints che hanno troppo
+    //reprojection error
+
+    return world_points;
 }
 
 float scaleFactor(float distance, Mat worldPoints)
