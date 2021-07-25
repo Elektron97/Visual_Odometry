@@ -11,5 +11,3 @@ Progetto SGN: Visual Odometry
 -Ri studiare la teoria. <- Capisci bene i passaggi!
 
 -Rifare triangulatePosition perchè vengono tutti 0 e non ha senso!!! Cerca anche nel libro!
-
--Includere le funzioni e i parametri dentro include.
