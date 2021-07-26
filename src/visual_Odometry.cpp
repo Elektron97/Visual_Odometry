@@ -287,6 +287,14 @@ int main(int argc, char **argv)
         //finally, recoverPose()
         recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t, RANSAC_mask);
 
+        /*************NOTA SU R, t***************
+         * currFrame = k; prevFrame = k-1       *
+         * [...]^k -> espresso in coordinate k  *
+         *                                      *
+         * R: {k} -> {k-1}                      *
+         * t: {k-1 -> k}^(k-1)                  *
+         * **************************************/
+
         //rotm2eul
         Vec3f euler_angles = rotationMatrixToEulerAngles(R);
     
@@ -298,7 +306,11 @@ int main(int argc, char **argv)
         //yaw: 
         double yaw_angle = euler_angles(0);
 
-        //orient -> Rotz di yaw angle
+        //Dato che il moto e' in 2D,
+        //sovrascrivo la matrice di rotazione
+        //e il vettore t
+
+        
 
         //getLastAvaibleAltitude
         float distance = laser.ranges[0]; //from MATLAB laser_msg{i, 1}.Ranges(1);
