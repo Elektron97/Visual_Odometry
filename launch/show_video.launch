@@ -1,7 +1,0 @@
-<launch>
-
-<!--Launch opencv_test: Open a Window with Shy gif-->
-<!--<node name="show_video_shy" pkg ="visual_odometry" type="show_video" output="screen" args="'/home/daniele/tenor.gif'"/>-->
-<node name="show_video_pugno" pkg ="visual_odometry" type="show_video" output="screen" args="'/home/daniele/Capitan Marvel.mp4'"/>
-
-</launch>

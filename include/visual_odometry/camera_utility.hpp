@@ -34,7 +34,7 @@ const double p2 = 0.0;
 const int fps = 33;
 bool showFrame = false;
 bool showMatch = false;
-bool showInlier = true;
+bool showInlier = false;
 
 //SURF parameters
 int minHessian = 100;
@@ -70,11 +70,10 @@ KeyPoint_Match point2f2keyPoint(KpAsPoint2f_Match kp_pnt2f);
 
 //Inlier
 void show_info(int outlier, int inlier, int keypoints_matched);
-KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat cameraMatrix);
+KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, vector<uchar> RANSAC_mask);
 void show_inlier(KpAsPoint2f_Match inlier_match_p2f, Mat prev_img, Mat curr_img);
 
-//Estimate Relative Pose
-vector<Mat> estimateRelativePose(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat cameraMatrix);
+//Euler and Rotm
 bool isRotationMatrix(Mat &R); 
 Vec3f rotationMatrixToEulerAngles(Mat &R);
 
@@ -82,7 +81,7 @@ Vec3f rotationMatrixToEulerAngles(Mat &R);
 vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in);
 Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic);
 Mat triangPoints(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat R, Mat t, Mat cameraMatrix);
-float scaleFactor(float distance, Mat worldPoints);
+double scaleFactor(float distance, Mat worldPoints);
 
 /*********Source**********/
 //TO DO -> Metterli in un .cpp?
@@ -194,10 +193,8 @@ void show_info(int outlier, int inlier, int keypoints_matched)
     ROS_INFO("Num. Inlier: %d", inlier);
 }
 
-KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat cameraMatrix)
+KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, vector<uchar> RANSAC_mask)
 {
-    vector<uchar> RANSAC_mask;
-    Mat E = findEssentialMat(keypoints1_conv, keypoints2_conv, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_mask);
     //RANSAC_mask, vettore contenente N elementi (N = length(keypoints)) in cui indica:
     // 0 = outlier
     // 1 = inlier
@@ -240,6 +237,18 @@ KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f
 
     return inlier_match_p2f;
 
+    /****************************
+    * Soluzione piu' elegante   *
+    *****************************/
+
+   /*  vector<cv::Point2f> inlier_match_points1, inlier_match_points2;
+  for(int i = 0; i < mask.rows; i++) {
+    if(mask.at<unsigned char>(i)){
+      inlier_match_points1.push_back(selected_points1[i]);
+      inlier_match_points2.push_back(selected_points2[i]);
+    }
+  }*/
+
 }
 
 void show_inlier(KpAsPoint2f_Match inlier_match_p2f, Mat prev_img, Mat curr_img)
@@ -257,18 +266,6 @@ void show_inlier(KpAsPoint2f_Match inlier_match_p2f, Mat prev_img, Mat curr_img)
         imshow("Matches after RANSAC", img_matches_ransac);
         waitKey(fps);
     }
-}
-
-vector<Mat> estimateRelativePose(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat cameraMatrix)
-{
-    Mat R, t, RANSAC_mask;
-
-    //default values: RANSAC, prob =0.999, threshold = 1.0
-    Mat E = findEssentialMat(keypoints1_conv, keypoints2_conv, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_mask);
-    recoverPose(E, keypoints1_conv, keypoints2_conv, cameraMatrix, R, t, RANSAC_mask);    
-
-    vector<Mat> transf_inlier = {R, t, RANSAC_mask};
-    return transf_inlier;
 }
 
 bool isRotationMatrix(Mat &R)
@@ -332,21 +329,39 @@ Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic)
 
 Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoints2_conv_inlier, Mat R, Mat t, Mat cameraMatrix)
 {
+    //Convertire in triangulation_points? (https://gist.github.com/cashiwamochi/8ac3f8bab9bf00e247a01f63075fedeb)
+
+    /*vector<Point2d> triangulation_points1, triangulation_points2;
+    for(int i = 0; i < mask.rows; i++) 
+    {
+        if(mask.at<unsigned char>(i))
+        {
+            triangulation_points1.push_back(Point2f((float)keypoints1_conv_inlier[i].x, (float)keypoints1_conv_inlier[i].y));
+            triangulation_points2.push_back(Point2f((float)keypoints2_conv_inlier[i].x, (float)keypoints2_conv_inlier[i].y));
+        }
+    }*/
+    
     Mat R_world = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
     Mat t_world = (Mat1d(3, 1) << 0, 0, 0);
 
     vector<Mat> worldTransf = cameraPoseToExtrinsic(R_world, t_world);
     vector<Mat> currTransf = cameraPoseToExtrinsic(R, t); 
 
-    //To do: cameraMatrix -> [Intrinsic]*[R | t]
-    //perche' non usare projectPoints?
-
     Mat worldMatrix = projectionMatrix(worldTransf[0], worldTransf[1], cameraMatrix); 
-    Mat currMatrix = projectionMatrix(currTransf[0], worldTransf[1], cameraMatrix); 
+    Mat currMatrix = projectionMatrix(currTransf[0], currTransf[1], cameraMatrix); 
 
-    cv::Mat world_points; //(4, leftInlier.size(), CV_64F);
+    Mat world_points; 
     triangulatePoints(worldMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points);
-    //Perche' fa tutto 0?
+    //triangulatePoints(worldMatrix, currMatrix, triangulation_points1, triangulation_points2, world_points);
+
+    world_points = world_points.rowRange(0, 3);
+    world_points.convertTo(world_points, CV_64F);
+
+    for(int i = 0; i < world_points.cols; i++)
+    {
+        //Convert from Prev camera coord in Curr camera coord
+        world_points.col(i) = currTransf[0]*world_points.col(i) + currTransf[1];
+    }
 
     //To do: Reprojection Error
     //Reietto worldpoints che hanno troppo
@@ -355,22 +370,22 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     return world_points;
 }
 
-float scaleFactor(float distance, Mat worldPoints)
+double scaleFactor(float distance, Mat worldPoints)
 {
-    float Zsum = 0;
+    double Zsum = 0.0;
     int N = worldPoints.cols;
 
     //Calcolo la media
     for(int i = 0; i < N; i++)
     {
-        Zsum += worldPoints.at<float>(2, i);
+        Zsum += worldPoints.at<double>(2, i);
     } 
     
-    float Zmean = Zsum / N;
+    double Zmean = Zsum / N;
 
     if(Zmean == 0)
     {
-        //ROS_ERROR("Z pari a 0!");
+        ROS_ERROR("Z pari a 0!");
         return 1.0; //per continuare il codice
     }
 

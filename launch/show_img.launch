@@ -1,6 +1,0 @@
-<launch>
-
-<!--Launch opencv_test: Open a Window with frame000046.png-->
-<node name="show_image" pkg ="visual_odometry" type="show_image" output="screen" args="'/home/daniele/frame000046.png'"/>
-
-</launch>

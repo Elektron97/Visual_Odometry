@@ -28,6 +28,9 @@
 #include "sensor_msgs/LaserScan.h"
 #include "sensor_msgs/CompressedImage.h"
 
+//msg for debug 
+#include "geometry_msgs/Pose2D.h"
+
 /*DEFINE*/
 #define FIRST_IMAGE 580
 #define viewId_stop 810
@@ -177,6 +180,7 @@ int main(int argc, char **argv)
 
     //Pub Object
     ros::Publisher pub =  node_obj.advertise<nav_msgs::Odometry>("/odom",10);
+    ros::Publisher pub2d =  node_obj.advertise<geometry_msgs::Pose2D>("/odom2D",10);
 
     //Sub Objects
 	ros::Subscriber sub_imu=node_obj.subscribe("/zeno/imu", 1, imu_callback);
@@ -236,27 +240,29 @@ int main(int argc, char **argv)
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
 
-        vector<Mat> relativeTransf = estimateRelativePose(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix);
-
-        Mat R = relativeTransf[0];
-        Mat t = relativeTransf[1];
-        //Mat RANSAC_mask = relativeTransf[2]; Al momento inutile
+        vector<uchar> RANSAC_mask;
+        Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_mask);
 
         //extract Inlier
-        KpAsPoint2f_Match inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix);
+        KpAsPoint2f_Match inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
 
         //Show Inlier
         show_inlier(inlier_converted, prev_img, curr_img);
+
+        Mat R, t;
+        //finally, recoverPose()
+        recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t, RANSAC_mask);
 
         //rotm2eul
         Vec3f euler_angles = rotationMatrixToEulerAngles(R);
     
         //NAV 2D
         //x, y:
-        float x = t.at<float>(0);
-        float y = t.at<float>(1);
+        double x = t.at<double>(0);
+        double y = t.at<double>(1);
+
         //yaw: 
-        float yaw_angle = euler_angles(0);
+        double yaw_angle = euler_angles(0);
 
         //getLastAvaibleAltitude
         float distance = laser.ranges[0]; //from MATLAB laser_msg{i, 1}.Ranges(1);
@@ -265,10 +271,19 @@ int main(int argc, char **argv)
         Mat world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
 
         //Scale Factor
-        float SF = scaleFactor(distance, world_points);
+        double SF = scaleFactor(distance, world_points);
         
         x *= SF;
         y *= SF;
+
+        ROS_INFO("Scale Pose and Yaw angle: [x = %f, y = %f, yaw = %f]", x, y, yaw_angle);
+
+        /*geometry_msgs::Pose2D pose2d;
+        pose2d.x = x;
+        pose2d.y = y;
+        pose2d.theta = yaw_angle;
+
+        pub2d.publish(pose2d);*/
 
         //Linear Velocity Estimation
         uint32_t deltaT = camera_sx.header.seq - prev_time;
