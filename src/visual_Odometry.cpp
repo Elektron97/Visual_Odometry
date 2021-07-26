@@ -308,9 +308,7 @@ int main(int argc, char **argv)
 
         //Dato che il moto e' in 2D,
         //sovrascrivo la matrice di rotazione
-        //e il vettore t
-
-        
+        //e il vettore t. Per ora lascio com'e'.
 
         //getLastAvaibleAltitude
         float distance = laser.ranges[0]; //from MATLAB laser_msg{i, 1}.Ranges(1);
@@ -338,12 +336,12 @@ int main(int argc, char **argv)
         /*ABSOLUTE POSE*/
         //convert quaternion in Rotational Matrix
         //tf::Matrix3x3 orientation_body = quat2rotm(ground_truth.pose.pose.orientation);
-        Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation);
-        Mat orientation = orientation_body*Rbc;
+        /*Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation);
+        Mat orientation = orientation_body*Rbc; //R_{w, k-1}
 
-        Mat locW = SF*orientation*t + pos2Mat(ground_truth.pose.pose.position);
+        Mat locW = SF*orientation*t + pos2Mat(ground_truth.pose.pose.position); //lodcW
 
-        Mat orient = R*orientation.t(); //controllare perche' dovrebbe essere Rwc2!
+        Mat orient = R*orientation.t(); //controllare perche' dovrebbe essere Rwc2!*/
 
         //To do: Transformazione in Coordinate {W} dei world points!
 

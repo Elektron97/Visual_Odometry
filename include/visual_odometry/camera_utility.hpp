@@ -62,9 +62,9 @@ struct KpAsPoint2f_Match
 Mat ros2cv(sensor_msgs::CompressedImage image);
 
 //Math Utility -> Another Library
-tf::Matrix3x3 quat2rotm(geometry_msgs::Quaternion quat);
-//Mat quat2Mat(geometry_msgs::Quaternion quat);
+Mat quat2Mat(geometry_msgs::Quaternion quat);
 Mat pos2Mat(geometry_msgs::Point pos);
+Mat coordTransf(Mat vector, Mat R, Mat t);
 
 //Detect and Match Features
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
@@ -109,14 +109,6 @@ Mat ros2cv(sensor_msgs::CompressedImage image)
     return cv_ptr->image;
 }
 
-tf::Matrix3x3 quat2rotm(geometry_msgs::Quaternion quat)
-{
-    tf::Quaternion q(quat.x, quat.y, quat.z, quat.w);
-    tf::Matrix3x3 m(q);
-
-    return m;
-}
-
 Mat quat2Mat(geometry_msgs::Quaternion quat)
 {
     tf::Quaternion q(quat.x, quat.y, quat.z, quat.w);
@@ -135,14 +127,16 @@ Mat quat2Mat(geometry_msgs::Quaternion quat)
     return rotm_mat;
 }
 
-//To do: Posizione in Mat
-
 Mat pos2Mat(geometry_msgs::Point pos)
 {
     Mat pos_mat = (Mat1d(3, 1) << pos.x, pos.y, pos.z);
     return pos_mat;
 }
 
+Mat coordTransf(Mat vector, Mat R, Mat t)
+{
+    return R*vector + t;
+}
 
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 {
@@ -382,26 +376,45 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
         }
     }*/
     
-    Mat R_world = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
-    Mat t_world = (Mat1d(3, 1) << 0, 0, 0);
+    Mat R_prev = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1); //
+    Mat t_prev = (Mat1d(3, 1) << 0, 0, 0);
 
-    vector<Mat> worldTransf = cameraPoseToExtrinsic(R_world, t_world);
+    /************************************************************
+     * La trasformazione R e t _prev sono identita'             *
+     * perche' rappresentano un riferimento rispetto            *
+     * al frame dell'immagine precedente.                       *
+     * Quindi per avere la trasformazione dal frame precedente  *
+     * a quello successivo, occorre che il riferimento per la   *
+     * triangolazione sia identita'.                            *
+     ************************************************************/
+
+    vector<Mat> prevTransf = cameraPoseToExtrinsic(R_prev, t_prev);
     vector<Mat> currTransf = cameraPoseToExtrinsic(R, t); 
 
-    Mat worldMatrix = projectionMatrix(worldTransf[0], worldTransf[1], cameraMatrix); 
+    /********************************
+     * currTransf[0] = R_{k-1, k}   *
+     * currTransf[1] = t_{k, k-1}^k *
+     ********************************/
+
+    Mat prevMatrix = projectionMatrix(prevTransf[0], prevTransf[1], cameraMatrix); 
     Mat currMatrix = projectionMatrix(currTransf[0], currTransf[1], cameraMatrix); 
 
     Mat world_points; 
-    triangulatePoints(worldMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points);
+    triangulatePoints(prevMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points);
     //triangulatePoints(worldMatrix, currMatrix, triangulation_points1, triangulation_points2, world_points);
 
+    /****************************************************
+     * world_points sono espressi in coordinate {k-1}   *
+     ****************************************************/
+
     world_points = world_points.rowRange(0, 3);
-    world_points.convertTo(world_points, CV_64F);
+    world_points.convertTo(world_points, CV_64F); //Converto nel tipo coerente con gli altri elementi
+
 
     for(int i = 0; i < world_points.cols; i++)
     {
         //Convert from Prev camera coord in Curr camera coord
-        world_points.col(i) = currTransf[0]*world_points.col(i) + currTransf[1];
+        world_points.col(i) = coordTransf(world_points.col(i), currTransf[0], currTransf[1]);
     }
 
     //To do: Reprojection Error
