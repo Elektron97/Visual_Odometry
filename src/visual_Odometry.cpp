@@ -32,7 +32,7 @@
 #include "geometry_msgs/Pose2D.h"
 
 /*DEFINE*/
-#define FIRST_IMAGE 580
+#define FIRST_IMAGE 2 //580
 #define viewId_stop 810
 #define MIN_NUM_FEATURES 20
 #define FREQUENCY 10
@@ -167,6 +167,37 @@ void cameraDX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
 
 void groundTruth_callback(const nav_msgs::Odometry::ConstPtr& msg)
 {
+    /********************************************
+    *std_msgs/Header header                     *
+    *  uint32 seq                               *
+    *  time stamp                               *
+    *  string frame_id                          *
+    *string child_frame_id                      *
+    *geometry_msgs/PoseWithCovariance pose      *
+    *  geometry_msgs/Pose pose                  *
+    *    geometry_msgs/Point position           *
+    *      float64 x                            *
+    *      float64 y                            *
+    *      float64 z                            *
+    *    geometry_msgs/Quaternion orientation   *
+    *      float64 x                            *
+    *      float64 y                            *
+    *      float64 z                            *
+    *      float64 w                            *
+    *  float64[36] covariance                   *
+    *geometry_msgs/TwistWithCovariance twist    *
+    *  geometry_msgs/Twist twist                *
+    *    geometry_msgs/Vector3 linear           *
+    *      float64 x                            *
+    *      float64 y                            *
+    *      float64 z                            *
+    *    geometry_msgs/Vector3 angular          *
+    *      float64 x                            *
+    *      float64 y                            *
+    *      float64 z                            *
+    *  float64[36] covariance                   *
+    *********************************************/
+
     ground_truth.header = msg->header;
     ground_truth.child_frame_id = msg->child_frame_id;
     ground_truth.pose = msg->pose;
@@ -207,6 +238,9 @@ int main(int argc, char **argv)
     ROS_WARN("START!");
 
     /*INITIALIZATION*/
+    //NED matrix rotation
+    Rbc = (Mat1d(3, 3) << 0, 0, 1, -1, 0, 0, 0, -1, 0);
+
     //Define Camera matrix and Distortion Coeff.
     Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
     Mat distortionCoeff = (Mat1d(1, 4) << k1, k2, p1, p2);
@@ -264,6 +298,8 @@ int main(int argc, char **argv)
         //yaw: 
         double yaw_angle = euler_angles(0);
 
+        //orient -> Rotz di yaw angle
+
         //getLastAvaibleAltitude
         float distance = laser.ranges[0]; //from MATLAB laser_msg{i, 1}.Ranges(1);
         
@@ -272,9 +308,6 @@ int main(int argc, char **argv)
 
         //Scale Factor
         double SF = scaleFactor(distance, world_points);
-        
-        x *= SF;
-        y *= SF;
 
         ROS_INFO("Scale Pose and Yaw angle: [x = %f, y = %f, yaw = %f]", x, y, yaw_angle);
 
@@ -291,9 +324,16 @@ int main(int argc, char **argv)
         //delta Euler?
 
         /*ABSOLUTE POSE*/
+        //convert quaternion in Rotational Matrix
+        //tf::Matrix3x3 orientation_body = quat2rotm(ground_truth.pose.pose.orientation);
+        Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation);
+        Mat orientation = orientation_body*Rbc;
 
+        Mat locW = SF*orientation*t + pos2Mat(ground_truth.pose.pose.position);
 
+        Mat orient = R*orientation.t(); //controllare perche' dovrebbe essere Rwc2!
 
+        //To do: Transformazione in Coordinate {W} dei world points!
 
 
         //Update prev data

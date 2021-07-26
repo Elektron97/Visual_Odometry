@@ -8,6 +8,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
+#include <tf/transform_datatypes.h>
 
 /*ROS MSGS*/
 #include "sensor_msgs/CompressedImage.h"
@@ -60,6 +61,11 @@ struct KpAsPoint2f_Match
 //Ros - OpenCV interface
 Mat ros2cv(sensor_msgs::CompressedImage image);
 
+//Math Utility -> Another Library
+tf::Matrix3x3 quat2rotm(geometry_msgs::Quaternion quat);
+//Mat quat2Mat(geometry_msgs::Quaternion quat);
+Mat pos2Mat(geometry_msgs::Point pos);
+
 //Detect and Match Features
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
 KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2);
@@ -102,6 +108,41 @@ Mat ros2cv(sensor_msgs::CompressedImage image)
 
     return cv_ptr->image;
 }
+
+tf::Matrix3x3 quat2rotm(geometry_msgs::Quaternion quat)
+{
+    tf::Quaternion q(quat.x, quat.y, quat.z, quat.w);
+    tf::Matrix3x3 m(q);
+
+    return m;
+}
+
+Mat quat2Mat(geometry_msgs::Quaternion quat)
+{
+    tf::Quaternion q(quat.x, quat.y, quat.z, quat.w);
+    tf::Matrix3x3 m(q);
+
+    Mat rotm_mat(3, 3, CV_64F);
+
+    for(int i = 0; i < 3; i++)
+    {
+        tf::Vector3 test = m.getRow(i);
+        rotm_mat.at<double>(i, 0) = test.getX();
+        rotm_mat.at<double>(i, 1) = test.getY();
+        rotm_mat.at<double>(i, 2) = test.getZ();
+    }
+
+    return rotm_mat;
+}
+
+//To do: Posizione in Mat
+
+Mat pos2Mat(geometry_msgs::Point pos)
+{
+    Mat pos_mat = (Mat1d(3, 1) << pos.x, pos.y, pos.z);
+    return pos_mat;
+}
+
 
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 {
