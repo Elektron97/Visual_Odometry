@@ -8,10 +8,10 @@ Progetto SGN: Visual Odometry
 
 ### Tabella di conversione tra teoria, MATLAB e codice:
 
-Legend: R_{ab} means Rotation from a to b
-k_1 prev frame
-k curr frame
-t_{a, b}^a -> da a a b in coordinate {a}
+Legend: 
+-R_{ab} means Rotation from a to b. k_1 prev frame, k curr frame.
+
+-t_{a, b}^a -> da a a b in coordinate {a}
 
 | Theory        | MATLAB        | ROS   |  Function |
 | ------------- |:-------------:| -----:| ---------:|
