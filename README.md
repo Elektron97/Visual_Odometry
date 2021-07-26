@@ -12,4 +12,4 @@ Progetto SGN: Visual Odometry
 
 -Rifare triangulatePosition perchè vengono tutti 0 e non ha senso!!! Cerca anche nel libro!
 
--Includere le funzioni e i parametri dentro include.
+-Inserire la Rbc nell'upload data.
