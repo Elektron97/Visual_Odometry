@@ -9,17 +9,17 @@ Progetto SGN: Visual Odometry
 ### Tabella di conversione tra teoria, MATLAB e codice:
 
 Legend: 
--R_{ab} means Rotation from a to b. k_1 prev frame, k curr frame.
+- R_{ab} means Rotation from a to b. k_1 prev frame, k curr frame.
+- t_{a, b}^a -> da a a b in coordinate {a}.
 
--t_{a, b}^a -> da a a b in coordinate {a}
-
-| Theory        | MATLAB        | ROS               |  Function             |
-| ------------- |:-------------:| -----------------:| ---------------------:|
-| R_{w, k_1}    | Rotm          |   orientation     | absPose               |
-| t_{w, k_1}^w  | tran          |   location        | absPose               |
-| R_{k, k_1}    | orient        |     R             | relativePose          |
-| t_{k_1, k}^k_1| loc           |     t             | relativePose          |
-
+| Theory           | MATLAB        | ROS               |  Function             |
+| -----------------|:-------------:| -----------------:| ---------------------:|
+| R_{w, k_1}       | Rotm          |   orientation     | absPose               |
+| t_{w, k_1}^w     | tran          |   location        | absPose               |
+| R_{k, k_1}       | orient        |     R             | recoverPose           |
+| t_{k_1, k}^k_1   | loc           |     t             | recoverPose           |
+| world_points{k}  | world_points  | world_points      | triangPoints          |
+| world_pointsW{w} | world_pointsW | world_pointsW     | absPose               |
 
 #### Task List: 
 - [ ] image_transport compressed.
@@ -27,6 +27,6 @@ Legend:
 - [x] World Position.
 - [x] Inserire la Rbc nell'upload data.
 - [x] Fare il Ground Truth.
-- [ ] Finire e commentare il read me sulle matrici di rotazione.
+- [x] Finire e commentare il read me sulle matrici di rotazione.
 - [ ] Show Result.
 - [ ] Inserire booleani di sicurezza (success, fail_detection).
