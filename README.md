@@ -13,12 +13,12 @@ Legend:
 
 -t_{a, b}^a -> da a a b in coordinate {a}
 
-| Theory        | MATLAB        | ROS               |  Function |
-| ------------- |:-------------:| -----------------:| ---------:|
-| R_{w, k_1}    | Rotm          |   orientation     |           |
-| t_{w, k_1}^w  | tran          |   location        |           |
-| R_{k, k_1}    | orient        |     R             |           |
-| t_{k_1, k}^k_1| loc           |     t             |           |
+| Theory        | MATLAB        | ROS               |  Function             |
+| ------------- |:-------------:| -----------------:| ---------------------:|
+| R_{w, k_1}    | Rotm          |   orientation     | absPose               |
+| t_{w, k_1}^w  | tran          |   location        | absPose               |
+| R_{k, k_1}    | orient        |     R             | relativePose          |
+| t_{k_1, k}^k_1| loc           |     t             | relativePose          |
 
 
 #### Task List: 
