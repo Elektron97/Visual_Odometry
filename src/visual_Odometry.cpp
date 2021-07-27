@@ -32,7 +32,7 @@
 #include "geometry_msgs/Pose2D.h"
 
 /*DEFINE*/
-#define FIRST_IMAGE 2 //580
+#define FIRST_IMAGE 580
 #define viewId_stop 810
 #define MIN_NUM_FEATURES 20
 #define FREQUENCY 10
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 
     //Pub Object
     ros::Publisher pub =  node_obj.advertise<nav_msgs::Odometry>("/odom",10);
-    ros::Publisher pub2d =  node_obj.advertise<geometry_msgs::Pose2D>("/odom2D",10);
+    //ros::Publisher pub2d =  node_obj.advertise<geometry_msgs::Pose2D>("/odom2D",10);
 
     //Sub Objects
 	ros::Subscriber sub_imu=node_obj.subscribe("/zeno/imu", 1, imu_callback);
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
 	ros::Subscriber sub_cameraSX=node_obj.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
     ros::Subscriber sub_cameraDX=node_obj.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);
 
-	ros::Subscriber sub_GT=node_obj.subscribe("/zeno/posegt", 1, groundTruth_callback);
+	ros::Subscriber sub_GT=node_obj.subscribe("/zeno/pose_gt", 1, groundTruth_callback);
 
 	ros::Rate loop_rate(FREQUENCY);	//10 Hz Prediction step
 
@@ -249,6 +249,12 @@ int main(int argc, char **argv)
     Mat prev_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
     uint32_t prev_time = camera_sx.header.seq;
 
+    //Inizializzo le Trasformazioni dal GT -> AbsPose
+    //convert quaternion in Rotational Matrix
+    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation);
+    Mat orientation = orientation_body*Rbc; //R_{w, k-1}
+    Mat location = pos2Mat(ground_truth.pose.pose.position);
+    
     /*ITERATIONS*/
     while(ros::ok())
     {
@@ -298,17 +304,20 @@ int main(int argc, char **argv)
         //rotm2eul
         Vec3f euler_angles = rotationMatrixToEulerAngles(R);
     
-        //NAV 2D
-        //x, y:
-        double x = t.at<double>(0);
-        double y = t.at<double>(1);
+        if(false)
+        {
+            //NAV 2D
+            //x, y:
+            double x = t.at<double>(0);
+            double y = t.at<double>(1);
 
-        //yaw: 
-        double yaw_angle = euler_angles(0);
+            //yaw: 
+            double yaw_angle = euler_angles(0);
 
-        //Dato che il moto e' in 2D,
-        //sovrascrivo la matrice di rotazione
-        //e il vettore t. Per ora lascio com'e'.
+            //Dato che il moto e' in 2D,
+            //sovrascrivo la matrice di rotazione
+            //e il vettore t. Per ora lascio com'e'.
+        }
 
         //getLastAvaibleAltitude
         float distance = laser.ranges[0]; //from MATLAB laser_msg{i, 1}.Ranges(1);
@@ -318,8 +327,6 @@ int main(int argc, char **argv)
 
         //Scale Factor
         double SF = scaleFactor(distance, world_points);
-
-        ROS_INFO("Scale Pose and Yaw angle: [x = %f, y = %f, yaw = %f]", x, y, yaw_angle);
 
         /*geometry_msgs::Pose2D pose2d;
         pose2d.x = x;
@@ -334,19 +341,18 @@ int main(int argc, char **argv)
         //delta Euler?
 
         /*ABSOLUTE POSE*/
-        //convert quaternion in Rotational Matrix
-        //tf::Matrix3x3 orientation_body = quat2rotm(ground_truth.pose.pose.orientation);
-        /*Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation);
-        Mat orientation = orientation_body*Rbc; //R_{w, k-1}
+        vector<Mat> absPose = absolutePose(orientation, location, R, t, SF, world_points);
+        Mat world_pointsW = absPose[2];
 
-        Mat locW = SF*orientation*t + pos2Mat(ground_truth.pose.pose.position); //lodcW
-
-        Mat orient = R*orientation.t(); //controllare perche' dovrebbe essere Rwc2!*/
-
-        //To do: Transformazione in Coordinate {W} dei world points!
+        /*SHOW RESULTS*/
+        
 
 
-        //Update prev data
+        
+        /*UPDATE PREV DATA*/
+        location = absPose[0];
+        orientation = absPose[1];
+
         prev_img = curr_img; 
         prev_time = camera_sx.header.seq;
     }

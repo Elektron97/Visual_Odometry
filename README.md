@@ -24,7 +24,9 @@ Legend:
 #### Task List: 
 - [ ] image_transport compressed.
 - [ ] provare cv_bridge con opencv_contrib 3.2.0.
-- [ ] World Position.
-- [ ] Inserire la Rbc nell'upload data.
-- [ ] Fare il Ground Truth.
+- [x] World Position.
+- [x] Inserire la Rbc nell'upload data.
+- [x] Fare il Ground Truth.
 - [ ] Finire e commentare il read me sulle matrici di rotazione.
+- [ ] Show Result.
+- [ ] Inserire booleani di sicurezza (success, fail_detection).

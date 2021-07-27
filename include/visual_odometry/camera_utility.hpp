@@ -89,6 +89,9 @@ Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic);
 Mat triangPoints(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat R, Mat t, Mat cameraMatrix);
 double scaleFactor(float distance, Mat worldPoints);
 
+//Absolute Pose
+vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat world_points);
+
 /*********Source**********/
 //TO DO -> Metterli in un .cpp?
 
@@ -119,6 +122,7 @@ Mat quat2Mat(geometry_msgs::Quaternion quat)
     for(int i = 0; i < 3; i++)
     {
         tf::Vector3 test = m.getRow(i);
+
         rotm_mat.at<double>(i, 0) = test.getX();
         rotm_mat.at<double>(i, 1) = test.getY();
         rotm_mat.at<double>(i, 2) = test.getZ();
@@ -417,6 +421,8 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
         world_points.col(i) = coordTransf(world_points.col(i), currTransf[0], currTransf[1]);
     }
 
+    //Adesso li ho convertiti in coordinate {k}.
+
     //To do: Reprojection Error
     //Reietto worldpoints che hanno troppo
     //reprojection error
@@ -447,4 +453,33 @@ double scaleFactor(float distance, Mat worldPoints)
         return distance/Zmean;
 }
 
+vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat world_points)
+{
+    /************************************************************
+     * Input:                                                   *
+     * >rotm: Matrice di rotazione {W} -> {k-1}                 *
+     * >tran: Vettore da {W} a {k-1}, espresso in coord. {W}    *
+     * >orient: Matrice di rotazione {k} -> {k-1}               *
+     * >loc: Vettore da {k-1} a {k}, espresso in coord. {k-1}   *
+     * >SF: Scale factor.                                       *
+     * >world_points: Punti nello spazio {k}.                   *
+    *************************************************************/
 
+    //Trasformo loc = t_{k-1, k}^(k-1) in t_{w, k}^w
+    Mat scaled_loc = coordTransf(SF*loc, rotm.t(), tran);
+    
+    //orient_wk: Matrice di rotazione dal frame {W} al frame {k}
+    Mat orient_wk = orient*rotm;
+
+    //Trasformo in coordinate {W} i world_points.
+    Mat world_pointsW(world_points.rows, world_points.cols, CV_64F);
+
+    for(int i = 0; i < world_points.cols; i++)
+    {
+        world_pointsW.col(i) = coordTransf(SF*world_points.col(i), orient_wk.t(), scaled_loc);
+    }
+
+    vector<Mat> absPose = {scaled_loc, orient_wk, world_pointsW};
+
+    return absPose;
+}
