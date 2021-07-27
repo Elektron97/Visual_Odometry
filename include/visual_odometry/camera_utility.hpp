@@ -33,7 +33,7 @@ const double p2 = 0.0;
 
 //showImg utility
 const int fps = 33;
-bool showFrame = false;
+bool showFrame = true;
 bool showMatch = false;
 bool showInlier= false;
 

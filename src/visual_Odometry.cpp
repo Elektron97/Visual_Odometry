@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 
     //Pub Object
     ros::Publisher pub =  node_obj.advertise<nav_msgs::Odometry>("/odom",10);
-    //ros::Publisher pub2d =  node_obj.advertise<geometry_msgs::Pose2D>("/odom2D",10);
+    ros::Publisher pub_err = node_obj.advertise<geometry_msgs::Vector3>("/error_pos", 10);
 
     //Sub Objects
 	ros::Subscriber sub_imu=node_obj.subscribe("/zeno/imu", 1, imu_callback);
@@ -326,17 +326,17 @@ int main(int argc, char **argv)
         //Scale Factor
         double SF = scaleFactor(distance, world_points);
 
-        /*geometry_msgs::Pose2D pose2d;
-        pose2d.x = x;
-        pose2d.y = y;
-        pose2d.theta = yaw_angle;
+        /*VELOCITY ESTIMATION*/
+        //deltaT
+        uint32_t curr_time = camera_sx.header.seq;
+        uint32_t deltaT = curr_time - prev_time;
 
-        pub2d.publish(pose2d);*/
+        //linear velocity
+        Mat estimate_vel = SF*t/deltaT;
 
-        //Linear Velocity Estimation
-        uint32_t deltaT = camera_sx.header.seq - prev_time;
-        //delta Position?
-        //delta Euler?
+        //angular velocity
+        double deltaPsi = atan2(R.at<double>(0, 0), R.at<double>(0, 1));
+        double estimate_ang = deltaPsi/deltaT;
 
         /*ABSOLUTE POSE*/
         vector<Mat> absPose = absolutePose(orientation, location, R, t, SF, world_points);
@@ -357,19 +357,22 @@ int main(int argc, char **argv)
         estimate_pos.z = location.at<double>(2);
 
         geometry_msgs::Point GTpos = ground_truth.pose.pose.position;
-        geometry_msgs::Vector3 GTrpy = quat2Euler(ground_truth.pose.pose.orientation);
+        geometry_msgs::Vector3 GTrpy = mat2Euler(quat2Mat(ground_truth.pose.pose.orientation)*Rbc);
+
+        /*PUBLISH ERROR*/
+        geometry_msgs::Vector3 error_pos;
+        error_pos.x =  GTpos.x - estimate_pos.x;
+        error_pos.y =  GTpos.y - estimate_pos.y;
+        error_pos.z =  GTpos.z - estimate_pos.z;
+
+        pub_err.publish(error_pos);
 
         /*SHOW RESULTS*/
         print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
 
-
-
-        
         /*UPDATE PREV DATA*/
-
-
         prev_img = curr_img; 
-        prev_time = camera_sx.header.seq;
+        prev_time = curr_time;
     }
     ROS_WARN("Video Finito!");
 

@@ -21,6 +21,10 @@ Legend:
 | world_points{k}  | world_points  | world_points      | triangPoints          |
 | world_pointsW{w} | world_pointsW | world_pointsW     | absPose               |
 
+## Prime Performance
+
+![alt text](/docs/err_pos.png)
+
 #### Task List: 
 - [ ] image_transport compressed.
 - [ ] provare cv_bridge con opencv_contrib 3.2.0.
@@ -30,4 +34,4 @@ Legend:
 - [x] Finire e commentare il read me sulle matrici di rotazione.
 - [x] Show Result.
 - [ ] Inserire booleani di sicurezza (success, fail_detection).
-- [ ] Stima velocita' lineare ed angolare per derivazione.
+- [x] Stima velocita' lineare ed angolare per derivazione.
