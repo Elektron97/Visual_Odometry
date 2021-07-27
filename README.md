@@ -22,10 +22,10 @@ Legend:
 
 
 #### Task List: 
-- [] image_transport compressed.
-- [] provare cv_bridge con opencv_contrib 3.2.0.
-- [] World Position.
-- [] Ri studiare la teoria. <- Capisci bene i passaggi!
-- [] Inserire la Rbc nell'upload data.
-- [] Fare il Ground Truth.
-- [] Finire e commentare il read me sulle matrici di rotazione.
+- [ ] image_transport compressed.
+- [ ] provare cv_bridge con opencv_contrib 3.2.0.
+- [ ] World Position.
+- [ ] Ri studiare la teoria. <- Capisci bene i passaggi!
+- [ ] Inserire la Rbc nell'upload data.
+- [ ] Fare il Ground Truth.
+- [ ] Finire e commentare il read me sulle matrici di rotazione.
