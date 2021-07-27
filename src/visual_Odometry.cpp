@@ -15,7 +15,6 @@
 /*INCLUDE*/
 //library
 #include "ros/ros.h"
-//#include "/usr/include/eigen3/Eigen/Eigen"
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 
@@ -39,7 +38,6 @@
 
 /*NAMESPACE*/
 using namespace std;
-//using namespace Eigen;
 using namespace cv;
 using namespace cv::xfeatures2d;
 
@@ -61,7 +59,7 @@ bool motion2D = true;   //Planar motion: [x y yaw]
 //bool magnetic_comp = true;
 
 /*GLOBAL VARIABLES*/
-sensor_msgs::Imu imu;   //Al momento inutile!
+sensor_msgs::Imu imu;   
 sensor_msgs::LaserScan laser;
 sensor_msgs::CompressedImage camera_sx;
 sensor_msgs::CompressedImage camera_dx;
@@ -214,7 +212,7 @@ int main(int argc, char **argv)
 
     //Pub Object
     ros::Publisher pub =  node_obj.advertise<nav_msgs::Odometry>("/odom",10);
-    ros::Publisher pub_err = node_obj.advertise<geometry_msgs::Vector3>("/error_pos", 10);
+    ros::Publisher pub_err = node_obj.advertise<geometry_msgs::Twist>("/error_pos", 10);
 
     //Sub Objects
 	ros::Subscriber sub_imu=node_obj.subscribe("/zeno/imu", 1, imu_callback);
@@ -222,6 +220,10 @@ int main(int argc, char **argv)
 
 	//ros::Subscriber sub_dvl=node_obj.subscribe("/zeno/dvl", 1, dvl_callback);
 
+    //image_transport::ImageTransport it(node_obj);
+    //image_transport::Subscriber sub_cameraSX = it.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
+    //image_transport::Subscriber sub_cameraDX = it.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);
+    
     /*ros::Subscriber risulta meno efficente di image_transport.*/
     //http://wiki.ros.org/compressed_image_transport
 	ros::Subscriber sub_cameraSX=node_obj.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
@@ -346,9 +348,7 @@ int main(int argc, char **argv)
         orientation = absPose[1];
 
         if(motion2D)
-        {
             location.at<double>(2) = ground_truth.pose.pose.position.z; //uso il GT per la profondita'
-        }
 
         geometry_msgs::Vector3 estimate_rpy = mat2Euler(orientation);
         geometry_msgs::Vector3 estimate_pos;
@@ -360,10 +360,11 @@ int main(int argc, char **argv)
         geometry_msgs::Vector3 GTrpy = mat2Euler(quat2Mat(ground_truth.pose.pose.orientation)*Rbc);
 
         /*PUBLISH ERROR*/
-        geometry_msgs::Vector3 error_pos;
-        error_pos.x =  GTpos.x - estimate_pos.x;
-        error_pos.y =  GTpos.y - estimate_pos.y;
-        error_pos.z =  GTpos.z - estimate_pos.z;
+        geometry_msgs::Twist error_pos;
+        error_pos.linear = estimate_pos;
+        error_pos.angular.x = GTpos.x;
+        error_pos.angular.y = GTpos.y;
+        error_pos.angular.z = GTpos.z;
 
         pub_err.publish(error_pos);
 
