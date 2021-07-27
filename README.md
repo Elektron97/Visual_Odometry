@@ -28,5 +28,6 @@ Legend:
 - [x] Inserire la Rbc nell'upload data.
 - [x] Fare il Ground Truth.
 - [x] Finire e commentare il read me sulle matrici di rotazione.
-- [ ] Show Result.
+- [x] Show Result.
 - [ ] Inserire booleani di sicurezza (success, fail_detection).
+- [ ] Stima velocita' lineare ed angolare per derivazione.

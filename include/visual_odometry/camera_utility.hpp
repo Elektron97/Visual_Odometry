@@ -8,7 +8,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
-#include <tf/transform_datatypes.h>
+#include <tf/tf.h>
 
 /*ROS MSGS*/
 #include "sensor_msgs/CompressedImage.h"
@@ -35,7 +35,7 @@ const double p2 = 0.0;
 const int fps = 33;
 bool showFrame = false;
 bool showMatch = false;
-bool showInlier = false;
+bool showInlier= false;
 
 //SURF parameters
 int minHessian = 100;
@@ -62,7 +62,12 @@ struct KpAsPoint2f_Match
 Mat ros2cv(sensor_msgs::CompressedImage image);
 
 //Math Utility -> Another Library
+Mat rotz(double angle);
+Mat tf2Mat(tf::Matrix3x3 m);
+tf::Matrix3x3 Mat2tf(Mat m);
 Mat quat2Mat(geometry_msgs::Quaternion quat);
+geometry_msgs::Vector3 mat2Euler(Mat R);
+geometry_msgs::Vector3 quat2Euler(geometry_msgs::Quaternion quat);
 Mat pos2Mat(geometry_msgs::Point pos);
 Mat coordTransf(Mat vector, Mat R, Mat t);
 
@@ -112,11 +117,13 @@ Mat ros2cv(sensor_msgs::CompressedImage image)
     return cv_ptr->image;
 }
 
-Mat quat2Mat(geometry_msgs::Quaternion quat)
+Mat rotz(double angle)
 {
-    tf::Quaternion q(quat.x, quat.y, quat.z, quat.w);
-    tf::Matrix3x3 m(q);
+    return (Mat1d(3, 3) << cos(angle), -sin(angle), 0, sin(angle), cos(angle), 0, 0, 0, 1);
+}
 
+Mat tf2Mat(tf::Matrix3x3 m)
+{
     Mat rotm_mat(3, 3, CV_64F);
 
     for(int i = 0; i < 3; i++)
@@ -129,6 +136,46 @@ Mat quat2Mat(geometry_msgs::Quaternion quat)
     }
 
     return rotm_mat;
+}
+
+tf::Matrix3x3 Mat2tf(Mat m)
+{
+    tf::Matrix3x3 tf_matrix(m.at<double>(0, 0), m.at<double>(0, 1), m.at<double>(0, 2), 
+                            m.at<double>(1, 0), m.at<double>(1, 1), m.at<double>(1, 2), 
+                            m.at<double>(2, 0), m.at<double>(2, 1), m.at<double>(2, 2));
+    return tf_matrix;
+}
+
+Mat quat2Mat(geometry_msgs::Quaternion quat)
+{
+    tf::Quaternion q(quat.x, quat.y, quat.z, quat.w);
+    tf::Matrix3x3 m(q);
+
+    return tf2Mat(m);
+}
+
+geometry_msgs::Vector3 mat2Euler(Mat R)
+{
+    tf::Matrix3x3 rotm = Mat2tf(R);
+    geometry_msgs::Vector3 rpy;
+    
+    //conversion in RPY
+    rotm.getRPY(rpy.x, rpy.y, rpy.z);
+
+    return rpy;
+}
+
+geometry_msgs::Vector3 quat2Euler(geometry_msgs::Quaternion quat)
+{
+    tf::Quaternion q(quat.x, quat.y, quat.z, quat.w);
+    tf::Matrix3x3 m(q);
+
+    geometry_msgs::Vector3 rpy;
+    
+    //conversion in RPY
+    m.getRPY(rpy.x, rpy.y, rpy.z);
+
+    return rpy;
 }
 
 Mat pos2Mat(geometry_msgs::Point pos)

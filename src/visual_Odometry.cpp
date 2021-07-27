@@ -68,6 +68,9 @@ sensor_msgs::CompressedImage camera_dx;
 
 nav_msgs::Odometry ground_truth;
 
+//function declaration
+void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy, geometry_msgs::Point GTpos, geometry_msgs::Vector3 GTrpy);
+
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
 {
@@ -301,22 +304,17 @@ int main(int argc, char **argv)
          * t: {k-1 -> k}^(k-1)                  *
          * **************************************/
 
-        //rotm2eul
-        Vec3f euler_angles = rotationMatrixToEulerAngles(R);
-    
-        if(false)
+        if(motion2D)
         {
             //NAV 2D
-            //x, y:
-            double x = t.at<double>(0);
-            double y = t.at<double>(1);
+            t.at<double>(2) = 0.0;
 
+            //rotm2eul
+            Vec3f euler_angles = rotationMatrixToEulerAngles(R);
             //yaw: 
             double yaw_angle = euler_angles(0);
 
-            //Dato che il moto e' in 2D,
-            //sovrascrivo la matrice di rotazione
-            //e il vettore t. Per ora lascio com'e'.
+            R = rotz(yaw_angle);
         }
 
         //getLastAvaibleAltitude
@@ -342,16 +340,33 @@ int main(int argc, char **argv)
 
         /*ABSOLUTE POSE*/
         vector<Mat> absPose = absolutePose(orientation, location, R, t, SF, world_points);
+        
         Mat world_pointsW = absPose[2];
+        location = absPose[0];
+        orientation = absPose[1];
+
+        if(motion2D)
+        {
+            location.at<double>(2) = ground_truth.pose.pose.position.z; //uso il GT per la profondita'
+        }
+
+        geometry_msgs::Vector3 estimate_rpy = mat2Euler(orientation);
+        geometry_msgs::Vector3 estimate_pos;
+        estimate_pos.x = location.at<double>(0);
+        estimate_pos.y = location.at<double>(1);
+        estimate_pos.z = location.at<double>(2);
+
+        geometry_msgs::Point GTpos = ground_truth.pose.pose.position;
+        geometry_msgs::Vector3 GTrpy = quat2Euler(ground_truth.pose.pose.orientation);
 
         /*SHOW RESULTS*/
-        
+        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+
 
 
         
         /*UPDATE PREV DATA*/
-        location = absPose[0];
-        orientation = absPose[1];
+
 
         prev_img = curr_img; 
         prev_time = camera_sx.header.seq;
@@ -359,4 +374,14 @@ int main(int argc, char **argv)
     ROS_WARN("Video Finito!");
 
     return 0;
+}
+
+void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy, geometry_msgs::Point GTpos, geometry_msgs::Vector3 GTrpy)
+{
+    ROS_WARN("************************************Visual Odometry**************************************");
+    ROS_INFO("Estimate Position:        [x:     %f, \t y:      %f, \t z:   %f]", estimate_pos.x, estimate_pos.y, estimate_pos.z);
+    ROS_INFO("Estimate RPY:             [roll:  %f, \t pitch:  %f, \t yaw: %f ]", estimate_rpy.x, estimate_rpy.y, estimate_rpy.z);
+    ROS_INFO("-----------------------------------------------------------------------------------------");
+    ROS_INFO("Ground Truth Position:    [x:     %f, \t y:      %f, \t z:   %f]", GTpos.x, GTpos.y, GTpos.z);
+    ROS_INFO("Ground Truth RPY:         [roll:  %f, \t pitch:  %f, \t yaw: %f ]\n\n", GTrpy.x, GTrpy.y, GTrpy.z);
 }
