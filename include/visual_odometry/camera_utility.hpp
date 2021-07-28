@@ -92,6 +92,7 @@ Vec3f rotationMatrixToEulerAngles(Mat &R);
 vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in);
 Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic);
 Mat triangPoints(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, Mat R, Mat t, Mat cameraMatrix);
+vector<double> reproject_error(Mat world_points, Mat R, Mat t, Mat cameraMatrix, vector<Point2f> img_points);
 double scaleFactor(float distance, Mat worldPoints);
 
 //Absolute Pose
@@ -427,7 +428,7 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
         }
     }*/
     
-    Mat R_prev = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1); //
+    Mat R_prev = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
     Mat t_prev = (Mat1d(3, 1) << 0, 0, 0);
 
     /************************************************************
@@ -461,20 +462,55 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     world_points = world_points.rowRange(0, 3);
     world_points.convertTo(world_points, CV_64F); //Converto nel tipo coerente con gli altri elementi
 
+    /*----------Reproject Error:------------*/
+    vector<double> reproject_prev = reproject_error(world_points, prevTransf[0], -t_prev, cameraMatrix, keypoints1_conv_inlier);
+    vector<double> reproject_curr = reproject_error(world_points, currTransf[0], -t, cameraMatrix, keypoints2_conv_inlier);  
 
+    vector<double> reproject_mean(reproject_prev.size());
+
+    for(int i = 0; i < reproject_prev.size(); i++)
+    {
+        //ROS_INFO("Reproject Error:");
+        //ROS_INFO("Prev frame: %f | Curr frame: %f", reproject_prev[i], reproject_curr[i]);
+
+        reproject_mean[i] = (reproject_prev[i] + reproject_curr[i])/2.0;
+        //ROS_INFO("Mean: %f", reproject_mean[i]);
+    }
+    //ROS_INFO("-----------------------------------------");
+    /*---------------------------------------*/
+
+    //Convert from Prev camera coord in Curr camera coord
     for(int i = 0; i < world_points.cols; i++)
     {
-        //Convert from Prev camera coord in Curr camera coord
         world_points.col(i) = coordTransf(world_points.col(i), currTransf[0], currTransf[1]);
     }
 
     //Adesso li ho convertiti in coordinate {k}.
 
-    //To do: Reprojection Error
-    //Reietto worldpoints che hanno troppo
-    //reprojection error
-
     return world_points;
+}
+
+vector<double> reproject_error(Mat world_points, Mat R, Mat t, Mat cameraMatrix, vector<Point2f> img_points)
+{
+    //Reproject world_points (3D) in 2D image plan, using projectPoints
+    //vector<Point2f> reproject_point;
+    Mat reproject_point;
+    Mat Rvec;
+    Rodrigues(R, Rvec);
+
+    projectPoints(world_points, Rvec, t, cameraMatrix, noArray(), reproject_point); 
+
+    //Compute reproject error
+    vector<double> reproject_err(img_points.size());
+
+    for(int i = 0; i < reproject_point.rows; i++)
+    {
+        //ROS_INFO("Keypoint 2D: [%f, %f] \t Reprojected World Point: [%f, %f]", img_points[i].x, img_points[i].y, reproject_point.at<double>(i, 0), reproject_point.at<double>(i, 1));
+        reproject_err[i] = sqrt(pow(img_points[i].x - reproject_point.at<double>(i, 0), 2.0) + pow(img_points[i].y - reproject_point.at<double>(i, 1), 2.0));
+    }
+    //ROS_INFO("----------------------");
+
+    return reproject_err;
 }
 
 double scaleFactor(float distance, Mat worldPoints)

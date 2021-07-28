@@ -25,6 +25,8 @@ Legend:
 
 ![alt text](/docs/err_pos.png)
 
+- 2-3 metri di errore: troppo alto!
+
 #### Task List: 
 - [ ] image_transport compressed.
 - [ ] provare cv_bridge con opencv_contrib 3.2.0.
@@ -35,3 +37,5 @@ Legend:
 - [x] Show Result.
 - [ ] Inserire booleani di sicurezza (success, fail_detection).
 - [x] Stima velocita' lineare ed angolare per derivazione.
+- [x] Reprojection Error.
+- [ ] Reprojection in Curr frame troppo alto, rivedere.
