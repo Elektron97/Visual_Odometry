@@ -1,6 +1,17 @@
 # Visual_Odometry
 Progetto SGN: Visual Odometry
 
+## Appunti di Teoria e abbozzo di Relazione
+
+Steps:
+- Undistort e conversione in scala di grigi.
+- Detect Features.
+- Match Features.
+- Essential Matrix.
+- Reject Outlier.
+- Decompose Essential Matrix. -> R_k e t_k.
+- Triangulation. -> World Points
+
 ## Appunti sulle Trasformazioni di Coordinate
 
 ![alt text](/docs/schema1.jpg)
