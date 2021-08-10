@@ -74,7 +74,55 @@ Dato che la Visual Odometry è di tipo Monocular, l'approccio 2D to 2D è consig
 
 ## 7) visual_odometry pkg
 
-### 7.1) Requisiti per la compilazione e l'esecuzione del pkg
+### 7.1) Istruzioni per la compilazione e l'esecuzione del pkg
+
+Per la compilazione e l'esecuzione del pkg, sono necessari i seguenti prerequisiti:
+- ROS Melodic (Ubuntu 18.04).
+- `vision_opencv`: Permette l'interfaccia tra OpenCV e ROS.
+- OpenCV.
+- `opencv_contrib` (Necessario per usare l'algoritmo SURF).
+
+#### Guida per l'installazione di OpenCV e opencv_contrib:
+**SOLUZIONE NON DEFINITVA**: Alla fine dell'esecuzione del nodo, va in errore, essendoci un conflitto tra OpenCV usato da `cv_bridge` (3.2.0, default in ROS Melodic) e OpenCV 4 usato per `xfeatures2d`.
+Bisogna trovare un'altra soluzione, ma al momento va bene per lavorare sul codice.
+
+Per l'installazione di OpenCV 4 con opencv_contrib, digitare nel terminale:
+
+```
+    mkdir ~/opencv_build && cd ~/opencv_build
+    git clone https://github.com/opencv/opencv.git
+    git clone https://github.com/opencv/opencv_contrib.git
+```
+Queste 3 istruzioni creano una cartella `opencv_build` dentro cui vengono scaricati `opencv` e `opencv_contrib`.
+
+Dopo di ciò, dal terminale:
+
+```
+    cd ~/opencv_build/opencv
+    mkdir build && cd build
+```
+Setup OpenCV build con CMake:
+
+```
+    cmake -D CMAKE_BUILD_TYPE=RELEASE \  
+            -D CMAKE_INSTALL_PREFIX=/usr/local \  
+            -D INSTALL_C_EXAMPLES=ON \  
+            -D INSTALL_PYTHON_EXAMPLES=ON \  
+            -D OPENCV_EXTRA_MODULES_PATH=~/opencv_build/opencv_contrib/modules \  
+            -D BUILD_EXAMPLES=ON .. \  
+            -D OPENCV_ENABLE_NONFREE=ON ..
+```
+Compiliamo:
+
+```
+    make -j8
+```
+Installiamo:
+
+```
+    sudo make install
+```
+L'installazione è completa.
 
 ### 7.2) Struttura del pkg
 ### 7.3) Versioni diverse
