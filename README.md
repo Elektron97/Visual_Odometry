@@ -5,7 +5,7 @@ Progetto SGN: Visual Odometry
 * [1. Introduzione](#1-introduzione)
 * [2. Visual Odometry](#2-visual-odometry)
 * [3. Preprocessing dell'Immagine](#3-preprocessing-dellimmagine)
-* [4. Feature Detecting and Matching](#4-feature-detecting-and-matching)
+* [4. Feature Detection and Matching](#4-feature-detection-and-matching)
 * [5. Motion Estimation](#5-motion-estimation)
 * [6. Risultati](#6-risultati)
 * [7. visual_odometry pkg](#7-visual_odometry-pkg)
@@ -16,6 +16,7 @@ Progetto SGN: Visual Odometry
 L'obiettivo del progetto è quello di implementare uno script MATLAB di Visual Odometry su ROS, con nodi implementati in C++. L'obiettivo è dunque quello di verificare non solo la correttezza dello script originale, ma di valutare se OpenCV raggiunge risultati migliori del toolbox di MATLAB.
 ### 1.1) Camera Modeling: Perspective Camera Model
 Pinhole camera projection system:
+
 ![alt text](/docs/img_relazione/camera_model.png)
 
 ## 2) Visual Odometry
@@ -34,16 +35,49 @@ C<sub>k</sub> = C<sub>k-1</sub> T<sub>k,k-1</sub>.
 L'obiettivo principale dunque della Visual Odometry è ricavare le trasformazioni T<sub>k,k-1</sub> a partire dalle immagini I<sub>k</sub> e I<sub>k-1</sub>, per poi ottenere C<sub>k</sub>.
 
 Per fare ciò, l'algoritmo si articola in diversi step:
+
 ![alt text](/docs/img_relazione/VO_steps.png).
 
 ## 3) Preprocessing dell'Immagine
 
-## 4) Feature Detecting and Matching
-## 5) Motion Estimation 
+### 3.1) Undistort Image
+### 3.2) Convert in Grey Scale
 
+## 4) Feature Detection and Matching
+
+### 4.1) Feature Dection
+
+### 4.2) Feature Matching
+
+### 4.3) Implementazione in OpenCV
+## 5) Motion Estimation 
+Lo step piu' importante della Visual Odometry consiste nella Motion Estimation, basata sull'estrazione delle matrici di Rotazione R<sub>k,k-1</sub> e dei vettori di traslazione t<sub>k,k-1</sub>. Gli approcci per estrarre la trasformazione di coordinate sono:
+
+1. 2D to 2D: Le feature estratte f<sub>k-1</sub> e f<sub>k</sub> sono espresse nel piano immagine (2D).
+
+2. 3D to 3D: Le feature estratte f<sub>k-1</sub> e f<sub>k</sub> sono espresse in coordinate 3D. Occorre dunque triangolare i punti ad ogni istante. Utili nel caso si stia implementando una Stereo VO.
+
+3. 3D to 2D: Le feature estratte f<sub>k-1</sub> e f<sub>k</sub> sono espresse rispettivamente in coordinate 3D e nel piano immagine 2D.
+
+Dato che la Visual Odometry è di tipo Monocular, l'approccio 2D to 2D è consigliabile, in quanto evita un'ulteriore triangolazione.
+
+### 5.1) Essential Matrix
+
+### 5.2) Estrazione di R e t
+
+### 5.3) Scale Factor
+
+### 5.4) Riassunto dell'algoritmo proposto
+
+![alt text](/docs/img_relazione/vo_2d.png)
 ## 6) Risultati 
 
 ## 7) visual_odometry pkg
+
+### 7.1) Requisiti per la compilazione e l'esecuzione del pkg
+
+### 7.2) Struttura del pkg
+### 7.3) Versioni diverse
 
 ## 8) Conclusioni
 
@@ -56,6 +90,7 @@ Per fare ciò, l'algoritmo si articola in diversi step:
 
 
 -------------------------------------------------------------------------------------
+# Appunti per sviluppo del codice
 ### Steps per la Visual Odometry:
 ![alt text](/docs/img_relazione/VO_steps.png)
 
