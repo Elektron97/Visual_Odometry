@@ -9,8 +9,8 @@ Steps:
 - Match Features.
 - Essential Matrix.
 - Reject Outlier.
-- Decompose Essential Matrix. -> R_k e t_k.
-- Triangulation. -> World Points
+- Decompose Essential Matrix -> R<sub>k</sub> e t<sub>k</sub>.
+- Triangulation -> World Points
 
 ## Appunti sulle Trasformazioni di Coordinate
 
