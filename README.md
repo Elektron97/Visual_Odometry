@@ -1,37 +1,51 @@
-# Visual_Odometry
+# Visual_Odometry (Bozza)
 Progetto SGN: Visual Odometry
-
-# Abbozzo di Relazione
 
 ## Contenuti:
 * [1. Introduzione](#1-introduzione)
-* [2. Preprocessing dell'Immagine](#2-preprocessing-dellimmagine)
-* [3. Feature Detecting](#3-feature-detecting)
-* [4. Feature Matching](#4-feature-matching)
-* [5. Motion Estimation](#5-motion-estimation)
-* [6. Risultati](#6-risultati)
-* [7. visual_odometry pkg](#7-visual_odometry-pkg)
-* [8. Conclusioni](#8-conclusioni)
+* [2. Visual Odometry](#2-visual-odometry)
+* [3. Preprocessing dell'Immagine](#3-preprocessing-dellimmagine)
+* [4. Feature Detecting](#4-feature-detecting)
+* [5. Feature Matching](#5-feature-matching)
+* [6. Motion Estimation](#6-motion-estimation)
+* [7. Risultati](#7-risultati)
+* [8. visual_odometry pkg](#8-visual_odometry-pkg)
+* [9. Conclusioni](#9-conclusioni)
+* [10. Bibliografia](#9-bibliografia)
 
 ## 1) Introduzione
+## 2) Visual Odometry
+La Visual Odometry consiste nel determinare il movimento della camera da una sequenza di immagini. La camera è rigidamente attaccata all'agente che ne permette il movimento.
 
-![alt text](/docs/img_relazione/VO_steps.png)
+![alt text](/docs/img_relazione/vo_example.png)
 
-## 2) Preprocessing dell'Immagine
+Impostiamo il problema in maniera formale. Nel caso della **Monocular VO**, ad ogni istante discreto di tempo k, avremo un set di immagini I<sub>0:k</sub> = {I<sub>0</sub>, ... , I<sub>k-1</sub>, I<sub>k</sub>}. Si definisce inoltre un set di pose della camera C<sub>0:k</sub> = {C<sub>0</sub>, ...,C<sub>k-1</sub>, C<sub>k</sub>}. 
+La trasformazione di coordinate tra due pose della camera ad istanti adiacenti k-1 e k, è definita come:
+![alt text](/docs/img_relazione/t_k.png)
 
-## 3) Feature Detecting
+Dove R<sub>k,k-1</sub> e t<sub>k,k-1</sub> sono rispettivamente la matrice di rotazione e il vettore di traslazione tra le due pose C<sub>k-1</sub> e C<sub>k</sub>. E' possibile dunque ottenere le pose della camera concatenando le trasformazioni ricavate ad ogni passo, attraverso la relazione 
+C<sub>k</sub> = C<sub>k-1</sub> T<sub>k,k-1</sub>.
 
-## 4) Feature Matching
+L'obiettivo principale dunque della Visual Odometry è ricavare le trasformazioni T<sub>k,k-1</sub> a partire dalle immagini I<sub>k</sub> e I<sub>k-1</sub>, per poi ottenere C<sub>k</sub>.
 
-## 5) Motion Estimation 
+Per fare ciò, l'algoritmo si articola in diversi step, ognuno di questi spiegato nelle sezioni apposite:
+![alt text](/docs/img_relazione/VO_steps.png).
+## 3) Preprocessing dell'Immagine
 
-## 6) Risultati 
+## 4) Feature Detecting
 
-## 7) visual_odometry pkg
+## 5) Feature Matching
 
-## 8) Conclusioni
+## 6) Motion Estimation 
 
+## 7) Risultati 
 
+## 8) visual_odometry pkg
+
+## 9) Conclusioni
+
+## 10) Bibliografia
+[1] Visual Odometry Tutorial, [parte 1](http://rpg.ifi.uzh.ch/docs/VO_Part_I_Scaramuzza.pdf), [parte 2](http://rpg.ifi.uzh.ch/docs/VO_Part_II_Scaramuzza.pdf).
 
 
 
