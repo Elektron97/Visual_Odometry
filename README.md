@@ -85,44 +85,52 @@ Per la compilazione e l'esecuzione del pkg, sono necessari i seguenti prerequisi
 #### Guida per l'installazione di OpenCV e opencv_contrib:
 **SOLUZIONE NON DEFINITVA**: Alla fine dell'esecuzione del nodo, va in errore, essendoci un conflitto tra OpenCV usato da `cv_bridge` (3.2.0, default in ROS Melodic) e OpenCV 4 usato per `xfeatures2d`.
 Bisogna trovare un'altra soluzione, ma al momento va bene per lavorare sul codice.
+La soluzione è presa da questo [link](https://answers.ros.org/question/312669/ros-melodic-opencv-xfeatures2d/).
 
 Per l'installazione di OpenCV 4 con opencv_contrib, digitare nel terminale:
 
 ```
-    mkdir ~/opencv_build && cd ~/opencv_build
-    git clone https://github.com/opencv/opencv.git
-    git clone https://github.com/opencv/opencv_contrib.git
+mkdir ~/opencv_build && cd ~/opencv_build
+git clone https://github.com/opencv/opencv.git
+git clone https://github.com/opencv/opencv_contrib.git
 ```
 Queste 3 istruzioni creano una cartella `opencv_build` dentro cui vengono scaricati `opencv` e `opencv_contrib`.
 
 Dopo di ciò, dal terminale:
 
 ```
-    cd ~/opencv_build/opencv
-    mkdir build && cd build
+cd ~/opencv_build/opencv
+mkdir build && cd build
 ```
 Setup OpenCV build con CMake:
 
 ```
-    cmake -D CMAKE_BUILD_TYPE=RELEASE \  
-            -D CMAKE_INSTALL_PREFIX=/usr/local \  
-            -D INSTALL_C_EXAMPLES=ON \  
-            -D INSTALL_PYTHON_EXAMPLES=ON \  
-            -D OPENCV_EXTRA_MODULES_PATH=~/opencv_build/opencv_contrib/modules \  
-            -D BUILD_EXAMPLES=ON .. \  
-            -D OPENCV_ENABLE_NONFREE=ON ..
+cmake -D CMAKE_BUILD_TYPE=RELEASE \  
+        -D CMAKE_INSTALL_PREFIX=/usr/local \  
+        -D INSTALL_C_EXAMPLES=ON \  
+        -D INSTALL_PYTHON_EXAMPLES=ON \  
+        -D OPENCV_EXTRA_MODULES_PATH=~/opencv_build/opencv_contrib/modules \  
+        -D BUILD_EXAMPLES=ON .. \  
+        -D OPENCV_ENABLE_NONFREE=ON ..
 ```
 Compiliamo:
 
 ```
-    make -j8
+make -j8
 ```
 Installiamo:
 
 ```
-    sudo make install
+sudo make install
 ```
 L'installazione è completa.
+
+
+Disinstallare OpenCV:
+
+```
+sudo rm /usr/local/{bin,lib}/*opencv* 
+```
 
 ### 7.2) Struttura del pkg
 ### 7.3) Versioni diverse
