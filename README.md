@@ -1,9 +1,18 @@
 # Visual_Odometry
 Progetto SGN: Visual Odometry
 
-## Appunti di Teoria e abbozzo di Relazione
+## Abbozzo di Relazione
 
-Steps:
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------
+### Steps per la Visual Odometry:
 - Undistort e conversione in scala di grigi.
 - Detect Features.
 - Match Features.
@@ -14,8 +23,8 @@ Steps:
 
 ## Appunti sulle Trasformazioni di Coordinate
 
-![alt text](/docs/schema1.jpg)
-![alt text](/docs/schema2.jpg)
+![alt text](/docs/appunti/schema1.jpg)
+![alt text](/docs/appunti/schema2.jpg)
 
 ### Tabella di conversione tra teoria, MATLAB e codice:
 
@@ -34,7 +43,7 @@ Legend:
 
 ## Prime Performance
 
-![alt text](/docs/err_pos.png)
+![alt text](/docs/risultati/err_pos.png)
 
 - 2-3 metri di errore: troppo alto!
 
