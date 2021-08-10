@@ -1,8 +1,35 @@
 # Visual_Odometry
 Progetto SGN: Visual Odometry
 
-## Abbozzo di Relazione
+# Abbozzo di Relazione
 
+## Contenuti:
+* [1. Introduzione](#1-introduzione)
+* [2. Preprocessing dell'Immagine](#2-preprocessing-dell'Immagine)
+* [3. Feature Detecting](#3-feature-detecting)
+* [4. Feature Matching](#4-feature-matching)
+* [5. Motion Estimation](#5-motion-estimation)
+* [6. Risultati](#6-risultati)
+* [7. visual_odometry pkg](#7-visual_odometry-pkg)
+* [8. Conclusioni](#8-conclusioni)
+
+## 1) Introduzione
+
+![alt text](/docs/img_relazione/VO_steps.png)
+
+## 2) Preprocessing dell'Immagine
+
+## 3) Feature Detecting
+
+## 4) Feature Matching
+
+## 5) Motion Estimation 
+
+## 6) Risultati 
+
+## 7) visual_odometry pkg
+
+## 8) Conclusioni
 
 
 
@@ -13,6 +40,8 @@ Progetto SGN: Visual Odometry
 
 -------------------------------------------------------------------------------------
 ### Steps per la Visual Odometry:
+![alt text](/docs/img_relazione/VO_steps.png)
+
 - Undistort e conversione in scala di grigi.
 - Detect Features.
 - Match Features.
@@ -59,3 +88,4 @@ Legend:
 - [x] Stima velocita' lineare ed angolare per derivazione.
 - [x] Reprojection Error.
 - [ ] Reprojection in Curr frame troppo alto, rivedere.
+- [ ] Plottare PointCloud2 i worldPoints.
