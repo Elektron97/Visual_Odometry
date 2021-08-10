@@ -5,7 +5,7 @@ Progetto SGN: Visual Odometry
 
 ## Contenuti:
 * [1. Introduzione](#1-introduzione)
-* [2. Preprocessing dell'Immagine](#2-preprocessing-dell'Immagine)
+* [2. Preprocessing dell'Immagine](#2-preprocessing-dellimmagine)
 * [3. Feature Detecting](#3-feature-detecting)
 * [4. Feature Matching](#4-feature-matching)
 * [5. Motion Estimation](#5-motion-estimation)
