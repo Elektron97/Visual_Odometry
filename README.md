@@ -34,6 +34,8 @@ C<sub>k</sub> = C<sub>k-1</sub> T<sub>k,k-1</sub>.
 
 L'obiettivo principale dunque della Visual Odometry è ricavare le trasformazioni T<sub>k,k-1</sub> a partire dalle immagini I<sub>k</sub> e I<sub>k-1</sub>, per poi ottenere C<sub>k</sub>.
 
+![alt text](/docs/img_relazione/vo_problem.png)
+
 Per fare ciò, l'algoritmo si articola in diversi step:
 
 ![alt text](/docs/img_relazione/VO_steps.png).
@@ -85,6 +87,8 @@ Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMat
 ```
 
 Il comando prende in input i KeyPoint individuato dallo step di Feature Matching, i parametri intrinsechi della camera, il metodo da usare per il calcolo della matrice (con relativi parametri) ed infine una `RANSAC_MASK`. Questa di fatto è un vettore di lunghezza pari ai vettori di KeyPoint e contiene 1 o 0, individuando quali di questi KeyPoint siano outlier o inlier.
+
+![alt text](/docs/img_relazione/ransac.png)
 
 ### 5.2) Estrazione di R e t
 Trovata l'Essential Matrix, l'obiettivo adesso e' quello di estrarre la matrice di rotazione R e il vettore di traslazione t. 
