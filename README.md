@@ -62,9 +62,49 @@ Lo step piu' importante della Visual Odometry consiste nella Motion Estimation, 
 Dato che la Visual Odometry è di tipo Monocular, l'approccio 2D to 2D è consigliabile, in quanto evita un'ulteriore triangolazione.
 
 ### 5.1) Essential Matrix
+L'Essential Matrix racchiude i parametri del moto della camera, a meno di un fattore di scala relativo al vettore di translazione. In particolare, e' possibile scrivere:
+
+![alt text](/docs/img_relazione/essential.png)
+
+Dove l'uguaglianza evidenza la non conoscenza del fattore di scala. Il vettore t<sub>k</sub> e' in forma di matrice antisimmetrica.
+
+L'Essential Matrix verrà calcolata dunque dalle feature 2D individuate dallo step precedente, aggiungendo un ulteriore vincolo, ovvero **epipolar constraint**. Questo vincolo puo' essere espresso matematicamente come:
+
+p<sup>'T</sup> E p = 0.
+
+Dove p<sup>'</sup> e p sono rispettivamente le feature individuate nell'immagine I<sub>k</sub> e I<sub>k-1</sub>.
+
+![alt text](/docs/img_relazione/epipolar.png)
+
+Per calcolare L'Essential Matrix esistono diversi algoritmi. Quello usato consiste in un algoritmo ad 8 punti, usando **RANSAC**. Quest'ultimo algoritmo è fondamentale per la Visual Odometry. Esso infatti reietta gli outliers, rendendo la stima della posa efficace.
+
+In OpenCV, cio' viene implementato dal comando:
+
+```
+Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_mask);
+```
+
+Il comando prende in input i KeyPoint individuato dallo step di Feature Matching, i parametri intrinsechi della camera, il metodo da usare per il calcolo della matrice (con relativi parametri) ed infine una `RANSAC_MASK`. Questa di fatto è un vettore di lunghezza pari ai vettori di KeyPoint e contiene 1 o 0, individuando quali di questi KeyPoint siano outlier o inlier.
 
 ### 5.2) Estrazione di R e t
+Trovata l'Essential Matrix, l'obiettivo adesso e' quello di estrarre la matrice di rotazione R e il vettore di traslazione t. 
+In generale esistono 4 soluzioni. Tuttavia, esse vengono scartate attraverso la triangulazione di un singolo punto. 
 
+Le 4 soluzioni sono:
+
+![alt text](/docs/img_relazione/4soluz.png)
+
+Dove la matrice W e':
+
+![alt text](/docs/img_relazione/W.png)
+
+In OpenCV, l'estrazione di R e t è implementata dal comando:
+
+```
+recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t, RANSAC_mask, world_points);
+```
+
+Il comando `recoverPose()` prende in input la matrice essentiale, i KeyPoint, la Mask fornita dall'algoritmo RANSAC e restituisce i punti triangolati `world_points`, `R` e `t`.
 ### 5.3) Scale Factor
 
 ### 5.4) Riassunto dell'algoritmo proposto
@@ -134,6 +174,55 @@ sudo rm /usr/local/{bin,lib}/*opencv*
 
 ### 7.2) Struttura del pkg
 ### 7.3) Versioni diverse
+E' possibile strutturare un nodo di ROS in vari modi. Il primo, chiamato **Procedural ROS Node**, che consiste in un loop `while(ros::ok())` ed in cui il flusso dei dati e delle istruzioni è evidente e leggibile. Il secondo invece, chiamato **Object-Oriented ROS Node**, consiste nel dichiarare una classe i cui attributi privati sono i componenti principali di un nodo (`ros::NodeHandle`, `ros::Subscriber`, etc.) e le callback sono i metodi della classe. 
+
+1. **Procedural ROS Node**: Consiste in un loop `while(ros::ok())` la cui frequenza viene decisa dall'oggetto `ros::Rate`. Le callBack sono dichiarate fuori dal main. 
+Il codice risulta leggibile e si segue bene il flusso delle istruzioni. Il codice tuttavia richiede variabili globali ed inoltre risulta poco riutilizzabile in altri nodi.
+
+2. **Object-Oriented ROS Node**: L'intero nodo viene implementato in una classe, in cui i componenti principali di un nodo (`ros::NodeHandle`, `ros::Subscriber`, etc.) sono i componenti `private` della classe, mentre le callBack consistono nei metodi. 
+Per riusare il codice in altri nodi, basta dichiarare l'oggetto della classe progettata. 
+Se si è interessati implementare il loop del **Procedural ROS Node**, è possibile dichiarare nei componenti `private` l'oggetto `ros::Timer`, che di fatto sostituisce il `ros::Rate`. 
+
+Saranno disponibili dunque entrambe le versioni per la Visual Odometry. L'idea e' quella di poter facilmente usare il codice ad esempio dentro un Filtro di Navigazione (ex. EKF) e dunque basterebbe dichiarare l'oggetto `Visual_Odometry` e riusare tutto il codice agilmente.
+
+Una struttura generale può essere del tipo:
+
+```
+class MyNode
+{
+    public:
+        MyNode():
+            nh{},
+            pub(nh.advertise<sensor_msgs::JointState>("js", 5)),
+            sub(nh.subscribe("topic", 1000, &MyNode::callback, this)),
+            timer(nh.createTimer(ros::Duration(0.1), &MyNode::main_loop, this))
+         {
+         }
+
+         void callback(const sensor_msgs::JointState & js) const
+         {
+         }
+
+         void main_loop(const ros::TimerEvent &) const
+         {
+             pub.publish(sensor_msgs::JointState{});
+         }
+
+    private:
+        ros::NodeHandle nh;
+        ros::Publisher pub;
+        ros::Subscriber sub;
+        ros::Timer timer;
+};
+
+int main(int argc, char * argv[])
+{
+    ros::init(argc, argv, "nodename");
+    MyNode node;
+    ros::spin();
+    return 0;
+}
+```
 
 ## 8) Conclusioni
 
