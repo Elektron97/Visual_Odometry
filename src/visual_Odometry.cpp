@@ -35,7 +35,6 @@
 /*DEFINE*/
 #define FIRST_IMAGE 1
 #define viewId_stop 810 //da modificare
-#define MIN_NUM_FEATURES 20
 #define FREQUENCY 10
 
 /*NAMESPACE*/
@@ -288,6 +287,7 @@ int main(int argc, char **argv)
         //finally, recoverPose()
         //recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t, RANSAC_mask);
         recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
+        cout << t << endl;
 
         /*************NOTA SU R, t***************
          * currFrame = k; prevFrame = k-1       *
@@ -379,7 +379,7 @@ int main(int argc, char **argv)
         pub_pcl.publish(wp_cloud);
 
         /*SHOW RESULTS*/
-        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+        //print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
 
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 

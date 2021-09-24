@@ -209,19 +209,6 @@ KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f
     }
 
     return inlier_match_p2f;
-
-    /****************************
-    * Soluzione piu' elegante?  *
-    *****************************/
-
-   /*  vector<cv::Point2f> inlier_match_points1, inlier_match_points2;
-  for(int i = 0; i < mask.rows; i++) {
-    if(mask.at<unsigned char>(i)){
-      inlier_match_points1.push_back(selected_points1[i]);
-      inlier_match_points2.push_back(selected_points2[i]);
-    }
-  }*/
-
 }
 
 void show_inlier(KpAsPoint2f_Match inlier_match_p2f, Mat prev_img, Mat curr_img)

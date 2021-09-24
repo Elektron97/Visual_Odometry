@@ -232,53 +232,11 @@ int main(int argc, char * argv[])
 
 ## 9) Bibliografia
 [1] Visual Odometry Tutorial, [parte 1](http://rpg.ifi.uzh.ch/docs/VO_Part_I_Scaramuzza.pdf), [parte 2](http://rpg.ifi.uzh.ch/docs/VO_Part_II_Scaramuzza.pdf).
-
-
-
-
-
-
 -------------------------------------------------------------------------------------
 # Appunti per sviluppo del codice
-### Steps per la Visual Odometry:
-![alt text](/docs/img_relazione/VO_steps.png)
-
-- Undistort e conversione in scala di grigi.
-- Detect Features.
-- Match Features.
-- Essential Matrix.
-- Reject Outlier.
-- Decompose Essential Matrix -> R<sub>k</sub> e t<sub>k</sub>.
-- Triangulation -> World Points
-
-## Appunti sulle Trasformazioni di Coordinate
-
-![alt text](/docs/appunti/schema1.jpg)
-![alt text](/docs/appunti/schema2.jpg)
-
-### Tabella di conversione tra teoria, MATLAB e codice:
-
-Legend: 
-- R_{ab} means Rotation from a to b. k_1 prev frame, k curr frame.
-- t_{a, b}^a -> da a a b in coordinate {a}.
-
-| Theory           | MATLAB        | ROS               |  Function             |
-| -----------------|:-------------:| -----------------:| ---------------------:|
-| R_{w, k_1}       | Rotm          |   orientation     | absPose               |
-| t_{w, k_1}^w     | tran          |   location        | absPose               |
-| R_{k, k_1}       | orient        |     R             | recoverPose           |
-| t_{k_1, k}^k_1   | loc           |     t             | recoverPose           |
-| world_points{k}  | world_points  | world_points      | triangPoints          |
-| world_pointsW{w} | world_pointsW | world_pointsW     | absPose               |
-
-## Prime Performance
-
-![alt text](/docs/risultati/err_pos.png)
-
-- 2-3 metri di errore: troppo alto!
 
 #### Task List: 
-- [ ] Plottare PointCloud2 i worldPoints.
+- [x] Plottare PointCloud2 i worldPoints.
 - [x] Riordinare il codice.
 - [ ] Inserire booleani di sicurezza (success, fail_detection).
 - [ ] Reprojection in Curr frame troppo alto, rivedere.
@@ -286,3 +244,4 @@ Legend:
 - [ ] Provare cv_bridge con opencv_contrib 3.2.0.
 - [ ] Scrivere la relazione.
 - [x] Aggiornare gli appunti sul codice.
+- [ ] Il problema e' prima della relativePose. Trovalo!
