@@ -10,6 +10,9 @@
 <!--To do: rosparam per il file YAML-->
 
 <!--Plot Position for debug-->
-<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/error_pos"/>
+<!--<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/error_pos"/>-->
+
+<!--Visualizing World Points in Rviz-->
+<!--<node type="rviz" name="rviz" pkg="rviz" args="-d $(find visual_odometry)/rviz/world_points.rviz" />-->
 
 </launch>

@@ -29,7 +29,8 @@ Mat quat2Mat(geometry_msgs::Quaternion quat);
 geometry_msgs::Vector3 mat2Euler(Mat R);
 geometry_msgs::Vector3 quat2Euler(geometry_msgs::Quaternion quat);
 Mat pos2Mat(geometry_msgs::Point pos);
-Mat coordTransf(Mat vector, Mat R, Mat t);
+Mat coordTransf(Mat vector, Mat R, Mat t); //Trasformazione esplicita omogenea
+Mat omogMatrix(Mat R, Mat t); //Matrice Omogenea
 
 //Euler and Rotm
 bool isRotationMatrix(Mat &R); 
@@ -127,6 +128,23 @@ Mat coordTransf(Mat vector, Mat R, Mat t)
 {
     //La funzione implementa la trasformazione omogenea
     return R*vector + t;
+}
+
+Mat omogMatrix(Mat R, Mat t)
+{
+    /**** Matrice Omogenea:******
+     *      [R      t]          *
+     * T =  |        |          *
+     *      [0      1]          *
+     ****************************/
+
+    Mat T;
+    Mat omg_v = (Mat1d(1, 4) << 0, 0, 0, 1);
+    Mat Rt;
+    hconcat(R, t, Rt);
+    vconcat(Rt, omg_v, T);
+    
+    return T;
 }
 
 bool isRotationMatrix(Mat &R)

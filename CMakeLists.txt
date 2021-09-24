@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   geometry_msgs
   std_msgs
+  pcl_ros
 )
 
 find_package(OpenCV 4 REQUIRED) 

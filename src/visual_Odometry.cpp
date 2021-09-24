@@ -24,6 +24,10 @@
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/LaserScan.h"
 #include "sensor_msgs/CompressedImage.h"
+#include "sensor_msgs/PointCloud2.h"
+
+#include <pcl/point_cloud.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 //msg for debug 
 #include "geometry_msgs/Pose2D.h"
@@ -198,6 +202,7 @@ int main(int argc, char **argv)
     //Pub Object
     ros::Publisher pub =  node_obj.advertise<nav_msgs::Odometry>("/odom",10);
     ros::Publisher pub_err = node_obj.advertise<geometry_msgs::Vector3>("/error_pos", 10);
+    ros::Publisher pub_pcl = node_obj.advertise<sensor_msgs::PointCloud2>("/world_points", 10);
 
     //Sub Objects
 	ros::Subscriber sub_imu=node_obj.subscribe("/zeno/imu", 1, imu_callback);
@@ -281,7 +286,8 @@ int main(int argc, char **argv)
 
         Mat R, t;
         //finally, recoverPose()
-        recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t, RANSAC_mask);
+        //recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t, RANSAC_mask);
+        recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
 
         /*************NOTA SU R, t***************
          * currFrame = k; prevFrame = k-1       *
@@ -351,6 +357,26 @@ int main(int argc, char **argv)
         error_pos.z = GTpos.z - estimate_pos.z;
 
         pub_err.publish(error_pos);
+
+        /*PUBLISH WORLD POINTS AS POINT CLOUD*/
+        //creating cloud object
+        pcl::PointCloud<pcl::PointXYZ> cloud;
+
+        //creating pc2 object
+        sensor_msgs::PointCloud2 wp_cloud;
+
+        cloud.points.resize(world_pointsW.cols);
+
+        for(int i = 0; i < world_pointsW.cols; i++)
+        {
+            cloud.points[i].x = world_pointsW.at<double>(0, i);
+            cloud.points[i].y = world_pointsW.at<double>(1, i);
+            cloud.points[i].z = world_pointsW.at<double>(2, i);
+        }
+
+        pcl::toROSMsg(cloud, wp_cloud);
+        wp_cloud.header.frame_id = "world_points";
+        pub_pcl.publish(wp_cloud);
 
         /*SHOW RESULTS*/
         print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);

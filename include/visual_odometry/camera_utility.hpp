@@ -27,12 +27,12 @@ const double p2 = 0.0;
 
 //showImg utility
 const int fps = 33;
-bool showFrame = false;
+bool showFrame = true;
 bool showMatch = false;
 bool showInlier= false;
 
 //SURF parameters
-int minHessian = 100;
+int minHessian = 200;
 
 /*STRUCTS*/
 struct KeyPoint_Match
@@ -372,7 +372,10 @@ double scaleFactor(float distance, Mat worldPoints)
     }
 
     else
+    {
         return distance/Zmean;
+    }
+        
 }
 
 vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat world_points)
