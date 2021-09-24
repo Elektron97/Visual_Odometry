@@ -120,6 +120,7 @@ Mat ros2cv(sensor_msgs::CompressedImage image)
 
 Mat rotz(double angle)
 {
+    /*To do: commenta come e' costruita la mat*/
     return (Mat1d(3, 3) << cos(angle), -sin(angle), 0, sin(angle), cos(angle), 0, 0, 0, 1);
 }
 
@@ -399,6 +400,9 @@ Vec3f rotationMatrixToEulerAngles(Mat &R)
 
 vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in)
 {
+    /*To do: vedere da Matlab il codice, 
+       riportarlo come commento qua*/
+
     Mat R_out = R_in.t();
     Mat t_out = -R_in.t()*t_in;
     vector<Mat> output = {R_out, t_out};
@@ -470,13 +474,13 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
 
     for(int i = 0; i < reproject_prev.size(); i++)
     {
-        //ROS_INFO("Reproject Error:");
-        //ROS_INFO("Prev frame: %f | Curr frame: %f", reproject_prev[i], reproject_curr[i]);
+        ROS_INFO("Reproject Error:");
+        ROS_INFO("Prev frame: %f | Curr frame: %f", reproject_prev[i], reproject_curr[i]);
 
         reproject_mean[i] = (reproject_prev[i] + reproject_curr[i])/2.0;
-        //ROS_INFO("Mean: %f", reproject_mean[i]);
+        ROS_INFO("Mean: %f", reproject_mean[i]);
     }
-    //ROS_INFO("-----------------------------------------");
+    ROS_INFO("-----------------------------------------");
     /*---------------------------------------*/
 
     //Convert from Prev camera coord in Curr camera coord

@@ -236,7 +236,7 @@ int main(int argc, char **argv)
     /*Aspetto la FIRST_IMAGE*/
     ROS_INFO("Waiting %d-th frame...", FIRST_IMAGE);
     
-    while(camera_sx.header.seq < FIRST_IMAGE) //scarto le prime immagini
+    while(camera_sx.header.seq <= FIRST_IMAGE ) //scarto le prime immagini
     {
         ros::spinOnce();
     }
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
 
     /*INITIALIZATION*/
     //NED matrix rotation
-    Rbc = (Mat1d(3, 3) << 0, 0, 1, -1, 0, 0, 0, -1, 0);
+    Rbc = (Mat1d(3, 3) << 0, 0, 1, -1, 0, 0, 0, -1, 0); //Body -> Camera
 
     //Define Camera matrix and Distortion Coeff.
     Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
@@ -256,8 +256,8 @@ int main(int argc, char **argv)
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
     //convert quaternion in Rotational Matrix
-    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation);
-    Mat orientation = orientation_body*Rbc; //R_{w, k-1}
+    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //ENU -> Body
+    Mat orientation = orientation_body*Rbc; //R_{w, k-1} -> orientazione della camera rispetto alla terna ENU | Da cambiare! (Al contrario)
     Mat location = pos2Mat(ground_truth.pose.pose.position);
     
     /*ITERATIONS*/
@@ -369,7 +369,7 @@ int main(int argc, char **argv)
         pub_err.publish(error_pos);
 
         /*SHOW RESULTS*/
-        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+        //print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
 
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 

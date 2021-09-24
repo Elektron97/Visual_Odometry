@@ -39,3 +39,6 @@ Legend:
 - [x] Stima velocita' lineare ed angolare per derivazione.
 - [x] Reprojection Error.
 - [ ] Reprojection in Curr frame troppo alto, rivedere.
+- [ ] Filtro sugli Inlier non detectati. -> (Media pendenza retta, reietta chi è diverso)
+- [ ] Mostrare i riproiettati sull'immagine.
+- [ ] PointCloud2 su Rviz.
