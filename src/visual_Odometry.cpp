@@ -29,7 +29,7 @@
 #include "geometry_msgs/Pose2D.h"
 
 /*DEFINE*/
-#define FIRST_IMAGE 1 //580
+#define FIRST_IMAGE 1
 #define viewId_stop 810 //da modificare
 #define MIN_NUM_FEATURES 20
 #define FREQUENCY 10
@@ -38,12 +38,6 @@
 using namespace std;
 using namespace cv;
 using namespace cv::xfeatures2d;
-
-/*PARAMETERS*/ //Da mettere in YAML?
-string detector_method = "SURF"; //to do: enum | HARRIS | FAST | KAZE | ORB | SURF | SIFT
-string feature_method = "MATCHING"; //to do: bool | MATCHING | TRACKING
-string estimation_method = "ESSENTIAL"; //to do: bool | ESSENTIAL | HOMOGRAPHY
-bool fromBag = true; // True: Simulation Data | False: Real Data
 
 Mat Rbc; //Matrice {Body} -> {Camera}
 
@@ -203,7 +197,7 @@ int main(int argc, char **argv)
 
     //Pub Object
     ros::Publisher pub =  node_obj.advertise<nav_msgs::Odometry>("/odom",10);
-    ros::Publisher pub_err = node_obj.advertise<geometry_msgs::Twist>("/error_pos", 10);
+    ros::Publisher pub_err = node_obj.advertise<geometry_msgs::Vector3>("/error_pos", 10);
 
     //Sub Objects
 	ros::Subscriber sub_imu=node_obj.subscribe("/zeno/imu", 1, imu_callback);
@@ -351,11 +345,10 @@ int main(int argc, char **argv)
         geometry_msgs::Vector3 GTrpy = mat2Euler(Rbc*quat2Mat(ground_truth.pose.pose.orientation));
 
         /*PUBLISH ERROR*/
-        geometry_msgs::Twist error_pos;
-        error_pos.linear = estimate_pos;
-        error_pos.angular.x = GTpos.x;
-        error_pos.angular.y = GTpos.y;
-        error_pos.angular.z = GTpos.z;
+        geometry_msgs::Vector3 error_pos;
+        error_pos.x = GTpos.x - estimate_pos.x;
+        error_pos.y = GTpos.y - estimate_pos.y;
+        error_pos.z = GTpos.z - estimate_pos.z;
 
         pub_err.publish(error_pos);
 

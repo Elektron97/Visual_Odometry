@@ -279,11 +279,10 @@ Legend:
 
 #### Task List: 
 - [ ] Plottare PointCloud2 i worldPoints.
-- [ ] Riordinare il codice.
-- [ ] Inserire Coord. Omogenee.
+- [x] Riordinare il codice.
 - [ ] Inserire booleani di sicurezza (success, fail_detection).
 - [ ] Reprojection in Curr frame troppo alto, rivedere.
 - [ ] image_transport compressed.
 - [ ] Provare cv_bridge con opencv_contrib 3.2.0.
 - [ ] Scrivere la relazione.
-- [ ] Aggiornare gli appunti sul codice.
+- [x] Aggiornare gli appunti sul codice.

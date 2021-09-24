@@ -27,7 +27,7 @@ const double p2 = 0.0;
 
 //showImg utility
 const int fps = 33;
-bool showFrame = true;
+bool showFrame = false;
 bool showMatch = false;
 bool showInlier= false;
 
@@ -381,7 +381,7 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
      * Input:                                                   *
      * >rotm: Matrice di rotazione {W} -> {k-1}                 *
      * >tran: Vettore da {W} a {k-1}, espresso in coord. {W}    *
-     * >orient: Matrice di rotazione {k} -> {k-1}               *
+     * >orient: Matrice di rotazione {k-1} -> {k}               *
      * >loc: Vettore da {k-1} a {k}, espresso in coord. {k-1}   *
      * >SF: Scale factor.                                       *
      * >world_points: Punti nello spazio {k}.                   *
