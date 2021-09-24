@@ -15,8 +15,6 @@
 /*INCLUDE*/
 //library
 #include "ros/ros.h"
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/image_encodings.h>
 
 //custom library
 #include <visual_odometry/camera_utility.hpp>
@@ -31,8 +29,8 @@
 #include "geometry_msgs/Pose2D.h"
 
 /*DEFINE*/
-#define FIRST_IMAGE 580
-#define viewId_stop 810
+#define FIRST_IMAGE 1 //580
+#define viewId_stop 810 //da modificare
 #define MIN_NUM_FEATURES 20
 #define FREQUENCY 10
 
@@ -46,17 +44,10 @@ string detector_method = "SURF"; //to do: enum | HARRIS | FAST | KAZE | ORB | SU
 string feature_method = "MATCHING"; //to do: bool | MATCHING | TRACKING
 string estimation_method = "ESSENTIAL"; //to do: bool | ESSENTIAL | HOMOGRAPHY
 bool fromBag = true; // True: Simulation Data | False: Real Data
-string camera = "frontal"; //to do: bool | frontal | bottom
 
-bool sdr_Rbc = true; // TRUE: ENU | FALSE: NED -> Dichiaro nel main, eigen antipatico
-Mat Rbc; //Occhio! Usare Mat! Rivedere per uploadData!
+Mat Rbc; //Matrice {Body} -> {Camera}
 
-bool JumpCond = true;
-int distance = 10;  //distance in pixels for Jumping Condition
-
-bool Loop_closing = false;
 bool motion2D = true;   //Planar motion: [x y yaw]
-//bool magnetic_comp = true;
 
 /*GLOBAL VARIABLES*/
 sensor_msgs::Imu imu;   
@@ -218,14 +209,13 @@ int main(int argc, char **argv)
 	ros::Subscriber sub_imu=node_obj.subscribe("/zeno/imu", 1, imu_callback);
 	ros::Subscriber sub_laser=node_obj.subscribe("/zeno/laser", 1, laser_callback);
 
-	//ros::Subscriber sub_dvl=node_obj.subscribe("/zeno/dvl", 1, dvl_callback);
+    /*ros::Subscriber risulta meno efficente di image_transport.*/
+    //http://wiki.ros.org/compressed_image_transport
 
     //image_transport::ImageTransport it(node_obj);
     //image_transport::Subscriber sub_cameraSX = it.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
     //image_transport::Subscriber sub_cameraDX = it.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);
     
-    /*ros::Subscriber risulta meno efficente di image_transport.*/
-    //http://wiki.ros.org/compressed_image_transport
 	ros::Subscriber sub_cameraSX=node_obj.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
     ros::Subscriber sub_cameraDX=node_obj.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);
 
@@ -236,17 +226,18 @@ int main(int argc, char **argv)
     /*Aspetto la FIRST_IMAGE*/
     ROS_INFO("Waiting %d-th frame...", FIRST_IMAGE);
     
-    while(camera_sx.header.seq <= FIRST_IMAGE ) //scarto le prime immagini
+    while(camera_sx.header.seq <= FIRST_IMAGE ) //aspetto le prime immagini
     {
         ros::spinOnce();
     }
+
     ROS_WARN("START!");
 
     /*INITIALIZATION*/
-    //NED matrix rotation
+    //ENU matrix rotation
     Rbc = (Mat1d(3, 3) << 0, 0, 1, -1, 0, 0, 0, -1, 0); //Body -> Camera
 
-    //Define Camera matrix and Distortion Coeff.
+    //Intrinsic Parameters
     Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
     Mat distortionCoeff = (Mat1d(1, 4) << k1, k2, p1, p2);
 
@@ -256,8 +247,8 @@ int main(int argc, char **argv)
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
     //convert quaternion in Rotational Matrix
-    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //ENU -> Body
-    Mat orientation = orientation_body*Rbc; //R_{w, k-1} -> orientazione della camera rispetto alla terna ENU | Da cambiare! (Al contrario)
+    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //ENU -> Body (all'istante k-1)
+    Mat orientation = Rbc*orientation_body; //ENU -> Camera (all'istante k-1)
     Mat location = pos2Mat(ground_truth.pose.pose.position);
     
     /*ITERATIONS*/
@@ -302,7 +293,7 @@ int main(int argc, char **argv)
          * currFrame = k; prevFrame = k-1       *
          * [...]^k -> espresso in coordinate k  *
          *                                      *
-         * R: {k} -> {k-1}                      *
+         * R: {k-1} -> {k}                      *
          * t: {k-1 -> k}^(k-1)                  *
          * **************************************/
 
@@ -357,7 +348,7 @@ int main(int argc, char **argv)
         estimate_pos.z = location.at<double>(2);
 
         geometry_msgs::Point GTpos = ground_truth.pose.pose.position;
-        geometry_msgs::Vector3 GTrpy = mat2Euler(quat2Mat(ground_truth.pose.pose.orientation)*Rbc);
+        geometry_msgs::Vector3 GTrpy = mat2Euler(Rbc*quat2Mat(ground_truth.pose.pose.orientation));
 
         /*PUBLISH ERROR*/
         geometry_msgs::Twist error_pos;
@@ -369,7 +360,7 @@ int main(int argc, char **argv)
         pub_err.publish(error_pos);
 
         /*SHOW RESULTS*/
-        //print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
 
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 

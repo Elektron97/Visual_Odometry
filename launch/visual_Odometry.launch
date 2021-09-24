@@ -6,11 +6,10 @@
 
 <!--Launch visual_Odometry.cpp-->
 <node name="visual_Odometry" pkg ="visual_odometry" type="visual_Odometry" output="screen"/>
-<!--Loading in Parameters Server-->
-<!--<param name="/visual_Odometry/image_transport" value="compressed"/> --> <!--Serve per image_transport-->
+
 <!--To do: rosparam per il file YAML-->
 
 <!--Plot Position for debug-->
-<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/error_pos/linear /error_pos/angular"/>
+<!--<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/error_pos/linear /error_pos/angular"/>-->
 
 </launch>

@@ -1,14 +1,8 @@
 /*CAMERA UTILITY*/
 
 /*INCLUDE*/
-#include "ros/ros.h"
-#include <iostream>
-#include <opencv2/opencv.hpp> 
+#include <visual_odometry/math_utility.hpp>
 #include <opencv2/xfeatures2d/nonfree.hpp>
-#include <cv_bridge/cv_bridge.h>
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/image_encodings.h>
-#include <tf/tf.h>
 
 /*ROS MSGS*/
 #include "sensor_msgs/CompressedImage.h"
@@ -57,20 +51,6 @@ struct KpAsPoint2f_Match
 
 /*FUNCTIONS*/
 /*********Declaration**********/
-
-//Ros - OpenCV interface
-Mat ros2cv(sensor_msgs::CompressedImage image);
-
-//Math Utility -> Another Library
-Mat rotz(double angle);
-Mat tf2Mat(tf::Matrix3x3 m);
-tf::Matrix3x3 Mat2tf(Mat m);
-Mat quat2Mat(geometry_msgs::Quaternion quat);
-geometry_msgs::Vector3 mat2Euler(Mat R);
-geometry_msgs::Vector3 quat2Euler(geometry_msgs::Quaternion quat);
-Mat pos2Mat(geometry_msgs::Point pos);
-Mat coordTransf(Mat vector, Mat R, Mat t);
-
 //Detect and Match Features
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
 KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2);
@@ -84,10 +64,6 @@ void show_info(int outlier, int inlier, int keypoints_matched);
 KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, vector<uchar> RANSAC_mask);
 void show_inlier(KpAsPoint2f_Match inlier_match_p2f, Mat prev_img, Mat curr_img);
 
-//Euler and Rotm
-bool isRotationMatrix(Mat &R); 
-Vec3f rotationMatrixToEulerAngles(Mat &R);
-
 //Triangulate Position and Scale Factor
 vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in);
 Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic);
@@ -99,97 +75,6 @@ double scaleFactor(float distance, Mat worldPoints);
 vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat world_points);
 
 /*********Source**********/
-//TO DO -> Metterli in un .cpp?
-
-Mat ros2cv(sensor_msgs::CompressedImage image)
-{
-    cv_bridge::CvImagePtr cv_ptr;
-
-    try
-    {
-        cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
-    }
-
-    catch(cv_bridge::Exception& e)
-    {
-        ROS_ERROR("cv_bridge exception: %s", e.what());
-    }
-
-    return cv_ptr->image;
-}
-
-Mat rotz(double angle)
-{
-    /*To do: commenta come e' costruita la mat*/
-    return (Mat1d(3, 3) << cos(angle), -sin(angle), 0, sin(angle), cos(angle), 0, 0, 0, 1);
-}
-
-Mat tf2Mat(tf::Matrix3x3 m)
-{
-    Mat rotm_mat(3, 3, CV_64F);
-
-    for(int i = 0; i < 3; i++)
-    {
-        tf::Vector3 test = m.getRow(i);
-
-        rotm_mat.at<double>(i, 0) = test.getX();
-        rotm_mat.at<double>(i, 1) = test.getY();
-        rotm_mat.at<double>(i, 2) = test.getZ();
-    }
-
-    return rotm_mat;
-}
-
-tf::Matrix3x3 Mat2tf(Mat m)
-{
-    tf::Matrix3x3 tf_matrix(m.at<double>(0, 0), m.at<double>(0, 1), m.at<double>(0, 2), 
-                            m.at<double>(1, 0), m.at<double>(1, 1), m.at<double>(1, 2), 
-                            m.at<double>(2, 0), m.at<double>(2, 1), m.at<double>(2, 2));
-    return tf_matrix;
-}
-
-Mat quat2Mat(geometry_msgs::Quaternion quat)
-{
-    tf::Quaternion q(quat.x, quat.y, quat.z, quat.w);
-    tf::Matrix3x3 m(q);
-
-    return tf2Mat(m);
-}
-
-geometry_msgs::Vector3 mat2Euler(Mat R)
-{
-    tf::Matrix3x3 rotm = Mat2tf(R);
-    geometry_msgs::Vector3 rpy;
-    
-    //conversion in RPY
-    rotm.getRPY(rpy.x, rpy.y, rpy.z);
-
-    return rpy;
-}
-
-geometry_msgs::Vector3 quat2Euler(geometry_msgs::Quaternion quat)
-{
-    tf::Quaternion q(quat.x, quat.y, quat.z, quat.w);
-    tf::Matrix3x3 m(q);
-
-    geometry_msgs::Vector3 rpy;
-    
-    //conversion in RPY
-    m.getRPY(rpy.x, rpy.y, rpy.z);
-
-    return rpy;
-}
-
-Mat pos2Mat(geometry_msgs::Point pos)
-{
-    Mat pos_mat = (Mat1d(3, 1) << pos.x, pos.y, pos.z);
-    return pos_mat;
-}
-
-Mat coordTransf(Mat vector, Mat R, Mat t)
-{
-    return R*vector + t;
-}
 
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 {
@@ -244,7 +129,7 @@ KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
 
 KpAsPoint2f_Match keyPoint2Point2f(KeyPoint_Match kp_match) 
 {
-    // Convert keypoints into Point2f
+    // Convert keypoints into Point2f (Solo i KP matchati)
     vector<Point2f> keypoints1_conv, keypoints2_conv;
     for (vector<DMatch>::const_iterator it= kp_match.match.begin(); it!= kp_match.match.end(); ++it) 
     {    
@@ -326,7 +211,7 @@ KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f
     return inlier_match_p2f;
 
     /****************************
-    * Soluzione piu' elegante   *
+    * Soluzione piu' elegante?  *
     *****************************/
 
    /*  vector<cv::Point2f> inlier_match_points1, inlier_match_points2;
@@ -356,52 +241,14 @@ void show_inlier(KpAsPoint2f_Match inlier_match_p2f, Mat prev_img, Mat curr_img)
     }
 }
 
-bool isRotationMatrix(Mat &R)
-{
-    // Checks if a matrix is a valid rotation matrix.
-
-    Mat Rt;
-    transpose(R, Rt);
-    Mat shouldBeIdentity = Rt * R;
-    Mat I = Mat::eye(3,3, shouldBeIdentity.type());
-
-    return  norm(I, shouldBeIdentity) < 1e-6;
-
-}
-
-Vec3f rotationMatrixToEulerAngles(Mat &R)
-{
-    // Calculates rotation matrix to euler angles
-    // The result is the same as MATLAB except the order
-    // of the euler angles ( x and z are swapped ).
-
-    assert(isRotationMatrix(R));
-
-    float sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
-
-    bool singular = sy < 1e-6; // If
-
-    float x, y, z;
-    if (!singular)
-    {
-        x = atan2(R.at<double>(2,1) , R.at<double>(2,2));
-        y = atan2(-R.at<double>(2,0), sy);
-        z = atan2(R.at<double>(1,0), R.at<double>(0,0));
-    }
-    else
-    {
-        x = atan2(-R.at<double>(1,2), R.at<double>(1,1));
-        y = atan2(-R.at<double>(2,0), sy);
-        z = 0;
-    }
-    return Vec3f(x, y, z);
-
-}
-
 vector<Mat> cameraPoseToExtrinsic(Mat R_in, Mat t_in)
 {
-    /*To do: vedere da Matlab il codice, 
-       riportarlo come commento qua*/
+    /****************************************************
+     * La funzione di fatto implementa l'inversa        *
+     * di una trasformazione omogenea.                  *
+     *                                                  *
+     * T = [R d; 0 1] -> inv(T) = [R.t() -R.t()*d; 0 1] *
+     ****************************************************/  
 
     Mat R_out = R_in.t();
     Mat t_out = -R_in.t()*t_in;
@@ -420,35 +267,24 @@ Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic)
 
 Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoints2_conv_inlier, Mat R, Mat t, Mat cameraMatrix)
 {
-    //Convertire in triangulation_points? (https://gist.github.com/cashiwamochi/8ac3f8bab9bf00e247a01f63075fedeb)
-
-    /*vector<Point2d> triangulation_points1, triangulation_points2;
-    for(int i = 0; i < mask.rows; i++) 
-    {
-        if(mask.at<unsigned char>(i))
-        {
-            triangulation_points1.push_back(Point2f((float)keypoints1_conv_inlier[i].x, (float)keypoints1_conv_inlier[i].y));
-            triangulation_points2.push_back(Point2f((float)keypoints2_conv_inlier[i].x, (float)keypoints2_conv_inlier[i].y));
-        }
-    }*/
     
     Mat R_prev = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
     Mat t_prev = (Mat1d(3, 1) << 0, 0, 0);
 
     /************************************************************
-     * La trasformazione R e t _prev sono identita'             *
-     * perche' rappresentano un riferimento rispetto            *
-     * al frame dell'immagine precedente.                       *
-     * Quindi per avere la trasformazione dal frame precedente  *
-     * a quello successivo, occorre che il riferimento per la   *
-     * triangolazione sia identita'.                            *
+     * La trasformazione R e t _prev sono identita' in quanto   *
+     * il frame {k-1} fa da {W} e dunque i world_points ricavati*
+     * dalla triangolazione saranno espressi in {k-1}.          *
+     * In sostanza, scrivendo R = eye(3) e d = zeros(3, 1)      *
+     * sto scrivendo {W} = {k-1}.                               *
      ************************************************************/
 
+    //Implemento di fatto l'inversa di una Trasf. Omogenea
     vector<Mat> prevTransf = cameraPoseToExtrinsic(R_prev, t_prev);
     vector<Mat> currTransf = cameraPoseToExtrinsic(R, t); 
 
     /********************************
-     * currTransf[0] = R_{k-1, k}   *
+     * currTransf[0] = R {k}->{k-1} *
      * currTransf[1] = t_{k, k-1}^k *
      ********************************/
 
@@ -457,7 +293,6 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
 
     Mat world_points; 
     triangulatePoints(prevMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points);
-    //triangulatePoints(worldMatrix, currMatrix, triangulation_points1, triangulation_points2, world_points);
 
     /****************************************************
      * world_points sono espressi in coordinate {k-1}   *
@@ -466,8 +301,8 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     world_points = world_points.rowRange(0, 3);
     world_points.convertTo(world_points, CV_64F); //Converto nel tipo coerente con gli altri elementi
 
-    /*----------Reproject Error:------------*/
-    vector<double> reproject_prev = reproject_error(world_points, prevTransf[0], -t_prev, cameraMatrix, keypoints1_conv_inlier);
+    /*---------------------------------------Reproject Error:--------------------------------------------------*/
+    /*vector<double> reproject_prev = reproject_error(world_points, prevTransf[0], -t_prev, cameraMatrix, keypoints1_conv_inlier);
     vector<double> reproject_curr = reproject_error(world_points, currTransf[0], -t, cameraMatrix, keypoints2_conv_inlier);  
 
     vector<double> reproject_mean(reproject_prev.size());
@@ -480,8 +315,8 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
         reproject_mean[i] = (reproject_prev[i] + reproject_curr[i])/2.0;
         ROS_INFO("Mean: %f", reproject_mean[i]);
     }
-    ROS_INFO("-----------------------------------------");
-    /*---------------------------------------*/
+    ROS_INFO("-----------------------------------------");*/
+    /*----------------------------------------------------------------------------------------------------------*/
 
     //Convert from Prev camera coord in Curr camera coord
     for(int i = 0; i < world_points.cols; i++)

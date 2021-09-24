@@ -278,15 +278,12 @@ Legend:
 - 2-3 metri di errore: troppo alto!
 
 #### Task List: 
-- [ ] image_transport compressed.
-- [ ] provare cv_bridge con opencv_contrib 3.2.0.
-- [x] World Position.
-- [x] Inserire la Rbc nell'upload data.
-- [x] Fare il Ground Truth.
-- [x] Finire e commentare il read me sulle matrici di rotazione.
-- [x] Show Result.
-- [ ] Inserire booleani di sicurezza (success, fail_detection).
-- [x] Stima velocita' lineare ed angolare per derivazione.
-- [x] Reprojection Error.
-- [ ] Reprojection in Curr frame troppo alto, rivedere.
 - [ ] Plottare PointCloud2 i worldPoints.
+- [ ] Riordinare il codice.
+- [ ] Inserire Coord. Omogenee.
+- [ ] Inserire booleani di sicurezza (success, fail_detection).
+- [ ] Reprojection in Curr frame troppo alto, rivedere.
+- [ ] image_transport compressed.
+- [ ] Provare cv_bridge con opencv_contrib 3.2.0.
+- [ ] Scrivere la relazione.
+- [ ] Aggiornare gli appunti sul codice.
