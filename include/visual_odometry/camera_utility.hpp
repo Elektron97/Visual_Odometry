@@ -31,9 +31,9 @@ const double p2 = 0.0;
 
 //showImg utility
 const int fps = 33;
-bool showFrame = false;
+bool showFrame = true;
 bool showMatch = false;
-bool showInlier= true;
+bool showInlier= false;
 
 //SURF parameters
 int minHessian = 100;
@@ -51,6 +51,13 @@ struct KpAsPoint2f_Match
     vector<Point2f> Kpoints1;
     vector<Point2f> Kpoints2;
     vector<DMatch> match;
+};
+
+struct RelativePose
+{
+    Mat R;
+    Mat t;
+    KpAsPoint2f_Match inlier_points;
 };
 
 /*FUNCTIONS*/
@@ -81,6 +88,8 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
 //Robustness of code
 bool checkIfMoving(KpAsPoint2f_Match kP);
 bool checkMinFeat(KpAsPoint2f_Match kP);
+
+RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix);
 
 /*********Source**********/
 
@@ -173,8 +182,8 @@ void show_info(int outlier, int inlier, int keypoints_matched)
     ROS_INFO("Num. Detected Outliers: %d", outlier);
     ROS_INFO("Num. Inlier: %d", inlier);
 
-    float outlier_perc = 100.0*outlier/(outlier + inlier);
-    ROS_INFO("Outlier Perc: %f", outlier_perc);
+    float inlier_perc = 100.0*inlier/(outlier + inlier);
+    ROS_INFO("Inlier Perc: %f", inlier_perc);
 }
 
 KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, vector<uchar> RANSAC_mask)
@@ -193,7 +202,6 @@ KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f
 
     int inlierCount = RANSAC_mask.size() - outlierCount;
 
-    //PROBLEMA: Troppi OUTLIER! Essential Matrix non esatta?
     if(showInlier)
         show_info(outlierCount, inlierCount, RANSAC_mask.size());
 
@@ -433,4 +441,57 @@ bool checkIfMoving(KpAsPoint2f_Match kP)
 bool checkMinFeat(KpAsPoint2f_Match kP)
 {
     return (kP.Kpoints1.size() < MIN_NUM_FEATURES);
+}
+
+RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix)
+{
+    //RANSAC Parameters
+    double prob = 0.999;
+    double threshold = 0.2;
+
+    vector<uchar> RANSAC_mask;
+    Mat R, t;
+    KpAsPoint2f_Match inlier_converted;
+
+    while(prob > 0.9)
+    {
+        Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, prob, threshold, RANSAC_mask);
+
+        //RANSAC_mask, vettore contenente N elementi (N = length(keypoints)) in cui indica:
+        // 0 = outlier
+        // 1 = inlier
+
+        int outlierCount = 0;
+        for(int i = 0; i < RANSAC_mask.size(); i++)
+        {
+            if(RANSAC_mask[i] == 0)
+                outlierCount ++;
+
+        }
+
+        double inlierCount = RANSAC_mask.size() - outlierCount;
+
+        if((inlierCount/RANSAC_mask.size()) < 0.3)
+        {
+            prob -= 0.02;
+            threshold += 0.1;
+            continue;        
+        }
+
+        //extract Inlier
+        inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
+
+        //finally, recoverPose()
+        recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
+
+        prob -= 0.02;
+        threshold += 0.1;
+    }
+
+    RelativePose rel_pose;
+    rel_pose.R = R;
+    rel_pose.t = t;
+    rel_pose.inlier_points = inlier_converted;
+    
+    return rel_pose;
 }

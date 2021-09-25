@@ -286,7 +286,17 @@ int main(int argc, char **argv)
             ROS_ERROR("Num. Features sotto il minimo. Skip Iteration!");
             continue;
         }      
-        
+
+        if(!checkIfMoving(kP_converted))
+        {
+            //ROS_WARN("Skip Iteration!");
+            continue;
+        } 
+
+        else
+            ROS_INFO("Robot is moving! Estimating pose..."); 
+
+        //Vecchio codice di riserva
         vector<uchar> RANSAC_mask;
         Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_mask);
 
@@ -296,19 +306,16 @@ int main(int argc, char **argv)
         //Show Inlier
         show_inlier(inlier_converted, prev_img, curr_img);
 
-        if(!checkIfMoving(inlier_converted))
-        {
-            //ROS_WARN("Skip Iteration!");
-            continue;
-        } 
-
-        else
-            ROS_INFO("Robot is moving! Estimating pose..."); 
-
         Mat R, t;
         //finally, recoverPose()
-        //recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t, RANSAC_mask);
         recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
+
+        /*RelativePose rel_pose = estimateRelativePose(kP_converted, cameraMatrix);
+        
+        Mat R = rel_pose.R;
+        Mat t = rel_pose.t;
+        KpAsPoint2f_Match inlier_converted = rel_pose.inlier_points;*/
+        
         //cout << t << endl;
 
         /*************NOTA SU R, t***************

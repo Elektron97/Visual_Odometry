@@ -235,11 +235,20 @@ int main(int argc, char * argv[])
 -------------------------------------------------------------------------------------
 # Appunti per sviluppo del codice
 
-#### Task List: 
+#### Check List sulle singole parti del codice:
+- [ ] Detect and Match Features
+- [ ] Essential Matrix
+- [ ] Removing Outlier with RANSAC
+- [ ] Relative Pose
+- [ ] Triangulation
+- [ ] Scale Factor
+- [ ] World Points
+- [ ] Absolute Pose
+
+#### Task List:
 - [x] Plottare PointCloud2 i worldPoints.
 - [x] Riordinare il codice.
 - [x] Inserire booleani di sicurezza (success, fail_detection).
-- [ ] Ricontrollare booleani di sicurezza.
 - [ ] Reprojection in Curr frame troppo alto, rivedere.
 - [ ] image_transport compressed.
 - [ ] Provare cv_bridge con opencv_contrib 3.2.0.
