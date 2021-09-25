@@ -44,6 +44,8 @@ using namespace cv::xfeatures2d;
 
 Mat Rbc; //Matrice {Body} -> {Camera}
 
+//Settings
+bool jumpCond = true;
 bool motion2D = true;   //Planar motion: [x y yaw]
 
 /*GLOBAL VARIABLES*/
@@ -255,8 +257,8 @@ int main(int argc, char **argv)
         ros::spinOnce();
         loop_rate.sleep();	
 
-        if(camera_sx.header.seq > viewId_stop)
-            break;
+        //if(camera_sx.header.seq > viewId_stop)
+        //    break;
 
         /*SHOW IMAGE FROM BAG FILE*/
         if(showFrame)
@@ -274,6 +276,15 @@ int main(int argc, char **argv)
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
 
+        if(checkIfMoving(kP_converted))
+        {
+            ROS_WARN("Skip Iteration!");
+            continue;
+        } 
+
+        else
+            ROS_INFO("Robot is moving! Estimating pose...");        
+
         vector<uchar> RANSAC_mask;
         Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_mask);
 
@@ -287,7 +298,7 @@ int main(int argc, char **argv)
         //finally, recoverPose()
         //recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t, RANSAC_mask);
         recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
-        cout << t << endl;
+        //cout << t << endl;
 
         /*************NOTA SU R, t***************
          * currFrame = k; prevFrame = k-1       *
@@ -379,7 +390,7 @@ int main(int argc, char **argv)
         pub_pcl.publish(wp_cloud);
 
         /*SHOW RESULTS*/
-        //print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
 
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 

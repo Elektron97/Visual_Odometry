@@ -36,6 +36,8 @@ Mat omogMatrix(Mat R, Mat t); //Matrice Omogenea
 bool isRotationMatrix(Mat &R); 
 Vec3f rotationMatrixToEulerAngles(Mat &R);
 
+double median(vector<double> v);
+
 /*********Source**********/
 //TO DO -> Metterli in un .cpp?
 
@@ -187,4 +189,24 @@ Vec3f rotationMatrixToEulerAngles(Mat &R)
     }
     return Vec3f(x, y, z);
 
+}
+
+double median(vector<double> v)
+{
+  size_t size = v.size();
+
+  if (size == 0)
+  {
+    ROS_ERROR("Empy vector");  // Undefined, really.
+  }
+
+  else
+  {
+    sort(v.begin(), v.end());
+    if (size % 2 == 0)
+      return (v[size / 2.0 - 1] + v[size / 2.0]) / 2.0;
+
+    else 
+      return v[size / 2.0];
+  }
 }

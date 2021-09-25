@@ -7,6 +7,8 @@
 /*ROS MSGS*/
 #include "sensor_msgs/CompressedImage.h"
 
+#define DISTANCE 10.0
+
 /*NAMESPACES*/
 using namespace std;
 using namespace cv;
@@ -73,6 +75,9 @@ double scaleFactor(float distance, Mat worldPoints);
 
 //Absolute Pose
 vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat world_points);
+
+//Robustness of code
+bool checkIfMoving(KpAsPoint2f_Match kP);
 
 /*********Source**********/
 
@@ -394,4 +399,27 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
     vector<Mat> absPose = {scaled_loc, orient_wk, world_pointsW};
 
     return absPose;
+}
+
+bool checkIfMoving(KpAsPoint2f_Match kP)
+{
+    /************CHECK IF MOVING*********************
+     * La funzione controlla se il robot si muove   *
+     * facendo la norma dello scarto tra i Keypoints*    
+     * matchati.                                    *
+     ************************************************/
+
+    int n_kP = kP.Kpoints1.size();
+    vector<double> pixelTrasl(n_kP);
+
+    for(int i = 0; i < n_kP; i++)
+    {
+        pixelTrasl[i] = sqrt(powf(kP.Kpoints1[i].x - kP.Kpoints2[i].x, 2.0) + powf(kP.Kpoints1[i].y - kP.Kpoints2[i].y, 2.0));
+    }
+
+    if(median(pixelTrasl) < DISTANCE)
+        return true;
+
+    else
+        return false;
 }
