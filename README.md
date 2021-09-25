@@ -238,10 +238,11 @@ int main(int argc, char * argv[])
 #### Task List: 
 - [x] Plottare PointCloud2 i worldPoints.
 - [x] Riordinare il codice.
-- [ ] Inserire booleani di sicurezza (success, fail_detection).
+- [x] Inserire booleani di sicurezza (success, fail_detection).
+- [ ] Ricontrollare booleani di sicurezza.
 - [ ] Reprojection in Curr frame troppo alto, rivedere.
 - [ ] image_transport compressed.
 - [ ] Provare cv_bridge con opencv_contrib 3.2.0.
 - [ ] Scrivere la relazione.
 - [x] Aggiornare gli appunti sul codice.
-- [ ] Il problema e' prima della relativePose. Trovalo!
+- [ ] World Points su Rviz con riferimenti corretti. 

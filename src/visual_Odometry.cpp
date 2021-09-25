@@ -250,6 +250,9 @@ int main(int argc, char **argv)
     Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //ENU -> Body (all'istante k-1)
     Mat orientation = Rbc*orientation_body; //ENU -> Camera (all'istante k-1)
     Mat location = pos2Mat(ground_truth.pose.pose.position);
+
+    //boolean variables for fail detection
+    bool fail_detection = false; //Quando il n di features e' minore della tolleranza
     
     /*ITERATIONS*/
     while(ros::ok())
@@ -276,23 +279,31 @@ int main(int argc, char **argv)
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
 
-        if(checkIfMoving(kP_converted))
+        fail_detection = checkMinFeat(kP_converted);
+        
+        if(fail_detection)
         {
-            ROS_WARN("Skip Iteration!");
+            ROS_ERROR("Num. Features sotto il minimo. Skip Iteration!");
             continue;
-        } 
-
-        else
-            ROS_INFO("Robot is moving! Estimating pose...");        
-
+        }      
+        
         vector<uchar> RANSAC_mask;
         Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_mask);
 
         //extract Inlier
-        KpAsPoint2f_Match inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
+        KpAsPoint2f_Match inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask); 
 
         //Show Inlier
         show_inlier(inlier_converted, prev_img, curr_img);
+
+        if(!checkIfMoving(inlier_converted))
+        {
+            //ROS_WARN("Skip Iteration!");
+            continue;
+        } 
+
+        else
+            ROS_INFO("Robot is moving! Estimating pose..."); 
 
         Mat R, t;
         //finally, recoverPose()
@@ -363,9 +374,9 @@ int main(int argc, char **argv)
 
         /*PUBLISH ERROR*/
         geometry_msgs::Vector3 error_pos;
-        error_pos.x = GTpos.x - estimate_pos.x;
-        error_pos.y = GTpos.y - estimate_pos.y;
-        error_pos.z = GTpos.z - estimate_pos.z;
+        error_pos.x = abs(GTpos.x - estimate_pos.x);
+        error_pos.y = abs(GTpos.y - estimate_pos.y);
+        error_pos.z = abs(GTpos.z - estimate_pos.z);
 
         pub_err.publish(error_pos);
 
@@ -390,7 +401,7 @@ int main(int argc, char **argv)
         pub_pcl.publish(wp_cloud);
 
         /*SHOW RESULTS*/
-        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+        //print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
 
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 

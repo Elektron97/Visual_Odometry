@@ -7,7 +7,9 @@
 /*ROS MSGS*/
 #include "sensor_msgs/CompressedImage.h"
 
+/*DEFINE*/
 #define DISTANCE 10.0
+#define MIN_NUM_FEATURES 20.0
 
 /*NAMESPACES*/
 using namespace std;
@@ -29,12 +31,12 @@ const double p2 = 0.0;
 
 //showImg utility
 const int fps = 33;
-bool showFrame = true;
+bool showFrame = false;
 bool showMatch = false;
-bool showInlier= false;
+bool showInlier= true;
 
 //SURF parameters
-int minHessian = 200;
+int minHessian = 100;
 
 /*STRUCTS*/
 struct KeyPoint_Match
@@ -78,6 +80,7 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
 
 //Robustness of code
 bool checkIfMoving(KpAsPoint2f_Match kP);
+bool checkMinFeat(KpAsPoint2f_Match kP);
 
 /*********Source**********/
 
@@ -169,6 +172,9 @@ void show_info(int outlier, int inlier, int keypoints_matched)
     ROS_INFO("Num. Keypoints Matched: %d", keypoints_matched);
     ROS_INFO("Num. Detected Outliers: %d", outlier);
     ROS_INFO("Num. Inlier: %d", inlier);
+
+    float outlier_perc = 100.0*outlier/(outlier + inlier);
+    ROS_INFO("Outlier Perc: %f", outlier_perc);
 }
 
 KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f> keypoints2_conv, vector<uchar> RANSAC_mask)
@@ -418,8 +424,13 @@ bool checkIfMoving(KpAsPoint2f_Match kP)
     }
 
     if(median(pixelTrasl) < DISTANCE)
-        return true;
+        return false;
 
     else
-        return false;
+        return true;
+}
+
+bool checkMinFeat(KpAsPoint2f_Match kP)
+{
+    return (kP.Kpoints1.size() < MIN_NUM_FEATURES);
 }
