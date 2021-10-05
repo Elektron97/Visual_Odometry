@@ -447,7 +447,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 {
     //RANSAC Parameters
     double prob = 0.999;
-    double threshold = 0.2;
+    double threshold = 0.5;
 
     vector<uchar> RANSAC_mask;
     Mat R, t;

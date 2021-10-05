@@ -252,7 +252,7 @@ int main(int argc, char **argv)
     Mat location = pos2Mat(ground_truth.pose.pose.position);
 
     //boolean variables for fail detection
-    bool fail_detection = false; //Quando il n di features e' minore della tolleranza
+    bool fail_detection = false; //Quando il n° di features e' minore della tolleranza
     
     /*ITERATIONS*/
     while(ros::ok())
@@ -278,6 +278,9 @@ int main(int argc, char **argv)
 
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
+
+        //cout << kP_converted.Kpoints1.size() << endl;
+        //break;
 
         fail_detection = checkMinFeat(kP_converted);
         
@@ -310,6 +313,7 @@ int main(int argc, char **argv)
         //finally, recoverPose()
         recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
 
+        //Codice Nuovo
         /*RelativePose rel_pose = estimateRelativePose(kP_converted, cameraMatrix);
         
         Mat R = rel_pose.R;
@@ -408,7 +412,7 @@ int main(int argc, char **argv)
         pub_pcl.publish(wp_cloud);
 
         /*SHOW RESULTS*/
-        //print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
 
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 
