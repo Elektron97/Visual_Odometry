@@ -31,12 +31,19 @@ const double p2 = 0.0;
 
 //showImg utility
 const int fps = 33;
-bool showFrame = true;
+bool showFrame = false;
 bool showMatch = false;
 bool showInlier= false;
 
 //SURF parameters
-int minHessian = 100;
+int minHessian = 85; 
+
+/*****MAPPA VALORI PER TUNING minHessian*****
+ * Desiderati: Circa 840.                   *
+ * minHessian = 100 | KeyPoints: 600        *
+ * minHessian = 90  | KeyPoints: 750        *
+ * minHessian = 85  | KeyPoints: 830        *
+ ********************************************/
 
 /*STRUCTS*/
 struct KeyPoint_Match
@@ -120,11 +127,29 @@ KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
     detector->detectAndCompute( img1, noArray(), keypoints1, descriptors1 );
     detector->detectAndCompute( img2, noArray(), keypoints2, descriptors2 );
 
-    //-- Step 2: Matching descriptor vectors with a brute force matcher
+    //-- Step 2: Matching descriptor vectors with a flann based matcher
     // Since SURF is a floating-point descriptor NORM_L2 is used
-    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
+    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
+
+    vector< vector< DMatch > > knn_matches;
+    matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2.0);
+
+    //-- Filter matches using the Lowe's ratio test
+    const float ratio_thresh = 0.7f; 
+    vector<DMatch> matches;
+    for (size_t i = 0; i < knn_matches.size(); i++)
+    {
+        if (knn_matches[i][0].distance < ratio_thresh * knn_matches[i][1].distance)
+        {
+            matches.push_back(knn_matches[i][0]);
+        }
+    }
+
+    /*OLD METHOD: n matches == n keypoints1*/
+
+    /*Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
     vector< DMatch > matches;
-    matcher->match( descriptors1, descriptors2, matches );
+    matcher->match( descriptors1, descriptors2, matches);*/
 
     if(showMatch)
     {

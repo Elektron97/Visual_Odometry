@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 
     //Undistort Image
     Mat prev_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
-    uint32_t prev_time = camera_sx.header.seq;
+    uint32_t prev_time = camera_sx.header.seq;  //N° immagini != tempo
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
     //convert quaternion in Rotational Matrix
@@ -276,10 +276,24 @@ int main(int argc, char **argv)
 
         KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
 
+        /*ROS_WARN("TEST KEYPOINT");
+        ROS_INFO("N Keypoints 1");
+        cout << detect_match.Kpoints1.size() << endl;
+        ROS_INFO("N Keypoints 2");
+        cout << detect_match.Kpoints2.size() << endl;
+        ROS_INFO("N Match");
+        cout << detect_match.match.size() << endl;*/
+
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
 
-        //cout << kP_converted.Kpoints1.size() << endl;
+        /*ROS_WARN("TEST KEYPOINT Point2f"); //RIVEDI: N° match sempre uguale al n minimo di Keypoints
+        ROS_INFO("N Keypoints 1");
+        cout << kP_converted.Kpoints1.size() << endl;
+        ROS_INFO("N Keypoints 2");
+        cout << kP_converted.Kpoints2.size() << endl;
+        ROS_INFO("N Match");
+        cout << kP_converted.match.size() << endl;*/    
         //break;
 
         fail_detection = checkMinFeat(kP_converted);
