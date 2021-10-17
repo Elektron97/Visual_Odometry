@@ -315,8 +315,7 @@ int main(int argc, char **argv)
             //t_k-1 == t_k
         }
 
-        //cout << t << endl;
-
+        //da aggiornare
         /*************NOTA SU R, t***************
          * currFrame = k; prevFrame = k-1       *
          * [...]^k -> espresso in coordinate k  *

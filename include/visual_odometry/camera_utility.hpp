@@ -309,8 +309,8 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
 {
     /***************************TRIANG POINTS****************************
      * keypoints_conv_inlier (1, 2): inlier in formato vector<Point2f>. *
-     * R: Rotazione {k-1} -> {k}.                                       *
-     * t: Traslazione {k-1} -> {k} espresso in {k-1}.                   *
+     * R: Rotazione {k-1} -> {k}.                    |                  *
+     * t: Traslazione {k} -> {k-1} espresso in {k}.  |-> T {k-1} -> {k} *
      * cameraMatrix.                                                    *
      ********************************************************************/
     
@@ -325,17 +325,16 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
      * sto scrivendo {W} = {k-1}.                               *
      ************************************************************/
 
-    //Implemento di fatto l'inversa di una Trasf. Omogenea
-    vector<Mat> prevTransf = cameraPoseToExtrinsic(R_prev, t_prev);
-    vector<Mat> currTransf = cameraPoseToExtrinsic(R.t(), t); 
+    /************Projection Matrix*******************
+     * In generale la projection Matrix permette    *
+     * la triangolazione.                           *
+     * Essa e' costruita a partire da R e t,        *
+     * elementi che costituiscono la trasformata    *
+     * omogenea T: {k-1} -> {k}.                    *
+     ************************************************/
 
-    /********************************
-     * currTransf[0] = R {k-1}->{k} *
-     * currTransf[1] = t_{k, k-1}^k *
-     ********************************/
-
-    Mat prevMatrix = projectionMatrix(prevTransf[0], prevTransf[1], cameraMatrix); 
-    Mat currMatrix = projectionMatrix(currTransf[0], currTransf[1], cameraMatrix); 
+    Mat prevMatrix = projectionMatrix(R_prev, t_prev, cameraMatrix); 
+    Mat currMatrix = projectionMatrix(R, t, cameraMatrix);
 
     Mat world_points; 
     triangulatePoints(prevMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points);
@@ -348,8 +347,8 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     world_points.convertTo(world_points, CV_64F); //Converto nel tipo coerente con gli altri elementi
 
     /*---------------------------------------Reproject Error:--------------------------------------------------*/
-    vector<double> reproject_prev = reproject_error(world_points, prevTransf[0], prevTransf[1], cameraMatrix, keypoints1_conv_inlier);
-    vector<double> reproject_curr = reproject_error(world_points, currTransf[0], currTransf[1], cameraMatrix, keypoints2_conv_inlier);  
+    /*vector<double> reproject_prev = reproject_error(world_points, R_prev, t_prev, cameraMatrix, keypoints1_conv_inlier);
+    vector<double> reproject_curr = reproject_error(world_points, R, t, cameraMatrix, keypoints2_conv_inlier);  
 
     vector<double> reproject_mean(reproject_prev.size());
 
@@ -361,13 +360,13 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
         reproject_mean[i] = (reproject_prev[i] + reproject_curr[i])/2.0;
         ROS_INFO("Mean: %f", reproject_mean[i]);
     }
-    ROS_INFO("-----------------------------------------");
+    ROS_INFO("-----------------------------------------");*/
     /*----------------------------------------------------------------------------------------------------------*/
 
     //Convert from Prev camera coord in Curr camera coord
     for(int i = 0; i < world_points.cols; i++)
     {
-        world_points.col(i) = coordTransf(world_points.col(i), currTransf[0], currTransf[1]);
+        world_points.col(i) = coordTransf(world_points.col(i), R, t);
     }
 
     return world_points;
@@ -557,9 +556,12 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
     rel_pose.inlier_points = inlier_converted;
     rel_pose.success = success;
 
-    //In particolare
-    //R = {k-1} -> {k}
-    //t = {k-1} -> {k} espresso in {k-1}
+    /*************In particolare*****************
+     * R = {k-1} -> {k}                         *
+     * t = {k} -> {k-1} espresso in {k}         *
+     * Restituisce di fatto la trasf. omogenea  *
+     * T {k-1} -> {k}                           *
+     ********************************************/
     
     return rel_pose;
 }
