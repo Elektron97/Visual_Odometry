@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 
     //Undistort Image
     Mat prev_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
-    uint32_t prev_time = camera_sx.header.seq;  //N° immagini != tempo
+    ros::Time prev_time = camera_sx.header.stamp;
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
     //convert quaternion in Rotational Matrix
@@ -253,15 +253,16 @@ int main(int argc, char **argv)
 
     //boolean variables for fail detection
     bool fail_detection = false; //Quando il n° di features e' minore della tolleranza
+
+    //Relative Orientation and Location
+    Mat R = Mat::eye(3, 3, CV_64F);
+    Mat t = Mat::zeros(3, 1, CV_64F);
     
     /*ITERATIONS*/
     while(ros::ok())
     {
         ros::spinOnce();
-        loop_rate.sleep();	
-
-        //if(camera_sx.header.seq > viewId_stop)
-        //    break;
+        loop_rate.sleep();
 
         /*SHOW IMAGE FROM BAG FILE*/
         if(showFrame)
@@ -276,25 +277,8 @@ int main(int argc, char **argv)
 
         KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
 
-        /*ROS_WARN("TEST KEYPOINT");
-        ROS_INFO("N Keypoints 1");
-        cout << detect_match.Kpoints1.size() << endl;
-        ROS_INFO("N Keypoints 2");
-        cout << detect_match.Kpoints2.size() << endl;
-        ROS_INFO("N Match");
-        cout << detect_match.match.size() << endl;*/
-
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
-
-        /*ROS_WARN("TEST KEYPOINT Point2f"); //RIVEDI: N° match sempre uguale al n minimo di Keypoints
-        ROS_INFO("N Keypoints 1");
-        cout << kP_converted.Kpoints1.size() << endl;
-        ROS_INFO("N Keypoints 2");
-        cout << kP_converted.Kpoints2.size() << endl;
-        ROS_INFO("N Match");
-        cout << kP_converted.match.size() << endl;*/    
-        //break;
 
         fail_detection = checkMinFeat(kP_converted);
         
@@ -306,35 +290,30 @@ int main(int argc, char **argv)
 
         if(!checkIfMoving(kP_converted))
         {
-            //ROS_WARN("Skip Iteration!");
+            ROS_WARN("Robot is not moving! Skip Iteration!");
             continue;
         } 
 
         else
             ROS_INFO("Robot is moving! Estimating pose..."); 
 
-        //Vecchio codice di riserva
-        vector<uchar> RANSAC_mask;
-        Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, 0.999, 1.0, RANSAC_mask);
 
-        //extract Inlier
-        KpAsPoint2f_Match inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask); 
+        RelativePose rel_pose = estimateRelativePose(kP_converted, cameraMatrix);
 
-        //Show Inlier
-        show_inlier(inlier_converted, prev_img, curr_img);
+        KpAsPoint2f_Match inlier_converted = rel_pose.inlier_points;
 
-        Mat R, t;
-        //finally, recoverPose()
-        recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
+        if(rel_pose.success)
+        {
+            R = rel_pose.R;
+            t = rel_pose.t;
+        }
 
-        //Codice Nuovo
-        /*RelativePose rel_pose = estimateRelativePose(kP_converted, cameraMatrix);
-        
-        Mat R = rel_pose.R;
-        Mat t = rel_pose.t;
-        KpAsPoint2f_Match inlier_converted = rel_pose.inlier_points;*/
-        
-        //cout << t << endl;
+        else
+        {
+            ROS_ERROR("FAILED RECOVERING POSE");
+            //R_k-1 == R_k
+            //t_k-1 == t_k
+        }
 
         /*************NOTA SU R, t***************
          * currFrame = k; prevFrame = k-1       *
@@ -368,15 +347,15 @@ int main(int argc, char **argv)
 
         /*VELOCITY ESTIMATION*/
         //deltaT
-        uint32_t curr_time = camera_sx.header.seq;
-        uint32_t deltaT = curr_time - prev_time;
+        ros::Time curr_time = camera_sx.header.stamp;
+        ros::Duration deltaT = curr_time - prev_time;
 
         //linear velocity
-        Mat estimate_vel = SF*t/deltaT;
+        Mat estimate_vel = SF*t/deltaT.toSec();
 
         //angular velocity
         double deltaPsi = atan2(R.at<double>(0, 0), R.at<double>(0, 1));
-        double estimate_ang = deltaPsi/deltaT;
+        double estimate_ang = deltaPsi/deltaT.toSec();
 
         /*ABSOLUTE POSE*/
         vector<Mat> absPose = absolutePose(orientation, location, R, t, SF, world_points);
@@ -426,7 +405,7 @@ int main(int argc, char **argv)
         pub_pcl.publish(wp_cloud);
 
         /*SHOW RESULTS*/
-        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+        //print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
 
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 

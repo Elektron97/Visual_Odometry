@@ -35,8 +35,15 @@ bool showFrame = false;
 bool showMatch = false;
 bool showInlier= false;
 
+/*Detect and Match parameters*/
 //SURF parameters
 int minHessian = 85; 
+
+//LOWE threshold
+const float ratio_thresh = 0.7f;
+
+/*Relative Pose parameters*/
+const float VPF_threshold = 0.85;
 
 /*****MAPPA VALORI PER TUNING minHessian*****
  * Desiderati: Circa 840.                   *
@@ -65,6 +72,7 @@ struct RelativePose
     Mat R;
     Mat t;
     KpAsPoint2f_Match inlier_points;
+    bool success;
 };
 
 /*FUNCTIONS*/
@@ -132,10 +140,10 @@ KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
     Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
 
     vector< vector< DMatch > > knn_matches;
-    matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2.0);
+    matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2);
 
     //-- Filter matches using the Lowe's ratio test
-    const float ratio_thresh = 0.7f; 
+    //const float ratio_thresh = 0.7f; 
     vector<DMatch> matches;
     for (size_t i = 0; i < knn_matches.size(); i++)
     {
@@ -478,6 +486,8 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
     Mat R, t;
     KpAsPoint2f_Match inlier_converted;
 
+    bool success = false;
+
     while(prob > 0.9)
     {
         Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, prob, threshold, RANSAC_mask);
@@ -507,8 +517,19 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
         inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
 
         //finally, recoverPose()
-        recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
+        int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
 
+        float validPointFraction = (float) validInlier/inlier_converted.Kpoints1.size();
+
+        //ROS_INFO("VPF: %f", validPointFraction);
+
+        if(validPointFraction > VPF_threshold)
+        {
+            ROS_WARN("Valid relative Pose");
+            success = true;
+            break;  
+        }
+             
         prob -= 0.02;
         threshold += 0.1;
     }
@@ -517,6 +538,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
     rel_pose.R = R;
     rel_pose.t = t;
     rel_pose.inlier_points = inlier_converted;
+    rel_pose.success = success;
     
     return rel_pose;
 }

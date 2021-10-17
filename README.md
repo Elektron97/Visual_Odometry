@@ -50,6 +50,9 @@ Per fare ciò, l'algoritmo si articola in diversi step:
 ### 4.1) Feature Dection
 
 ### 4.2) Feature Matching
+TO DO: 
+- Parlare del knnMatch() e della sua differenza con match().
+- Lowe Ratio.
 
 ### 4.3) Implementazione in OpenCV
 ## 5) Motion Estimation 
@@ -105,10 +108,10 @@ Dove la matrice W e':
 In OpenCV, l'estrazione di R e t è implementata dal comando:
 
 ```
-recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t, RANSAC_mask, world_points);
+recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t, RANSAC_mask);
 ```
 
-Il comando `recoverPose()` prende in input la matrice essentiale, i KeyPoint, la Mask fornita dall'algoritmo RANSAC e restituisce i punti triangolati `world_points`, `R` e `t`.
+Il comando `recoverPose()` prende in input la matrice essentiale, i KeyPoints, la Mask fornita dall'algoritmo RANSAC e restituisce `R` e `t`.
 ### 5.3) Scale Factor
 
 ### 5.4) Riassunto dell'algoritmo proposto
@@ -236,22 +239,21 @@ int main(int argc, char * argv[])
 # Appunti per sviluppo del codice
 
 #### Check List sulle singole parti del codice:
-- [ ] Detect and Match Features
-- [ ] Essential Matrix
-- [ ] Removing Outlier with RANSAC
-- [ ] Relative Pose
+- [x] Detect and Match Features
+- [x] Essential Matrix
+- [x] Removing Outlier with RANSAC
+- [x] Relative Pose
 - [ ] Triangulation
 - [ ] Scale Factor
 - [ ] World Points
 - [ ] Absolute Pose
 
 #### Task List:
-- [x] Plottare PointCloud2 i worldPoints.
-- [x] Riordinare il codice.
-- [x] Inserire booleani di sicurezza (success, fail_detection).
 - [ ] Reprojection in Curr frame troppo alto, rivedere.
 - [ ] image_transport compressed.
 - [ ] Provare cv_bridge con opencv_contrib 3.2.0.
 - [ ] Scrivere la relazione.
-- [x] Aggiornare gli appunti sul codice.
 - [ ] World Points su Rviz con riferimenti corretti. 
+- [x] Sistemare il matching.
+- [x] Vedere perche' R e t non tornano molto.
+- [x] Valid Point Fraction (VPF) in OpenCV.
