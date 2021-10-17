@@ -315,6 +315,8 @@ int main(int argc, char **argv)
             //t_k-1 == t_k
         }
 
+        //cout << t << endl;
+
         /*************NOTA SU R, t***************
          * currFrame = k; prevFrame = k-1       *
          * [...]^k -> espresso in coordinate k  *
@@ -340,7 +342,7 @@ int main(int argc, char **argv)
         float distance = laser.ranges[0]; //from MATLAB laser_msg{i, 1}.Ranges(1);
         
         /*TRIANGULATE POINTS AND ESTIMATE SCALE FACTOR*/
-        Mat world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
+        Mat world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);        
 
         //Scale Factor
         double SF = scaleFactor(distance, world_points);

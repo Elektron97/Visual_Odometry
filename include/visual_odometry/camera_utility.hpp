@@ -43,6 +43,7 @@ int minHessian = 85;
 const float ratio_thresh = 0.7f;
 
 /*Relative Pose parameters*/
+//Valid Point Fraction Threshold
 const float VPF_threshold = 0.85;
 
 /*****MAPPA VALORI PER TUNING minHessian*****
@@ -306,6 +307,12 @@ Mat projectionMatrix(Mat R, Mat t, Mat cameraIntrinsic)
 
 Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoints2_conv_inlier, Mat R, Mat t, Mat cameraMatrix)
 {
+    /***************************TRIANG POINTS****************************
+     * keypoints_conv_inlier (1, 2): inlier in formato vector<Point2f>. *
+     * R: Rotazione {k-1} -> {k}.                                       *
+     * t: Traslazione {k-1} -> {k} espresso in {k-1}.                   *
+     * cameraMatrix.                                                    *
+     ********************************************************************/
     
     Mat R_prev = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
     Mat t_prev = (Mat1d(3, 1) << 0, 0, 0);
@@ -320,10 +327,10 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
 
     //Implemento di fatto l'inversa di una Trasf. Omogenea
     vector<Mat> prevTransf = cameraPoseToExtrinsic(R_prev, t_prev);
-    vector<Mat> currTransf = cameraPoseToExtrinsic(R, t); 
+    vector<Mat> currTransf = cameraPoseToExtrinsic(R.t(), t); 
 
     /********************************
-     * currTransf[0] = R {k}->{k-1} *
+     * currTransf[0] = R {k-1}->{k} *
      * currTransf[1] = t_{k, k-1}^k *
      ********************************/
 
@@ -341,8 +348,8 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     world_points.convertTo(world_points, CV_64F); //Converto nel tipo coerente con gli altri elementi
 
     /*---------------------------------------Reproject Error:--------------------------------------------------*/
-    /*vector<double> reproject_prev = reproject_error(world_points, prevTransf[0], -t_prev, cameraMatrix, keypoints1_conv_inlier);
-    vector<double> reproject_curr = reproject_error(world_points, currTransf[0], -t, cameraMatrix, keypoints2_conv_inlier);  
+    vector<double> reproject_prev = reproject_error(world_points, prevTransf[0], prevTransf[1], cameraMatrix, keypoints1_conv_inlier);
+    vector<double> reproject_curr = reproject_error(world_points, currTransf[0], currTransf[1], cameraMatrix, keypoints2_conv_inlier);  
 
     vector<double> reproject_mean(reproject_prev.size());
 
@@ -354,7 +361,7 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
         reproject_mean[i] = (reproject_prev[i] + reproject_curr[i])/2.0;
         ROS_INFO("Mean: %f", reproject_mean[i]);
     }
-    ROS_INFO("-----------------------------------------");*/
+    ROS_INFO("-----------------------------------------");
     /*----------------------------------------------------------------------------------------------------------*/
 
     //Convert from Prev camera coord in Curr camera coord
@@ -363,15 +370,20 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
         world_points.col(i) = coordTransf(world_points.col(i), currTransf[0], currTransf[1]);
     }
 
-    //Adesso li ho convertiti in coordinate {k}.
-
     return world_points;
 }
 
 vector<double> reproject_error(Mat world_points, Mat R, Mat t, Mat cameraMatrix, vector<Point2f> img_points)
 {
+
+    /************************REPROJECT ERROR*********************************
+     * world_points: Punti 3D in coordinate {W} da proiettare in {C}.       *
+     * R e t: Trasformazione omogenea che trasforma da {W} a {C}            *
+     * cameraMatrix                                                         *
+     * img_points: Punti con cui confrontare i world_points riproiettati.   *
+     ************************************************************************/
+
     //Reproject world_points (3D) in 2D image plan, using projectPoints
-    //vector<Point2f> reproject_point;
     Mat reproject_point;
     Mat Rvec;
     Rodrigues(R, Rvec);
@@ -478,9 +490,14 @@ bool checkMinFeat(KpAsPoint2f_Match kP)
 
 RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix)
 {
+    /********************ESTIMATE RELATIVE POSE**********************
+     * Funzione che stima la posa relativa partendo dai Keypoints   *
+     * individuati nella sezione Detect and Match Features.         *
+     ****************************************************************/
+
     //RANSAC Parameters
-    double prob = 0.999;
-    double threshold = 0.5;
+    double prob = 0.99;
+    double threshold = 0.5; 
 
     vector<uchar> RANSAC_mask;
     Mat R, t;
@@ -539,6 +556,10 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
     rel_pose.t = t;
     rel_pose.inlier_points = inlier_converted;
     rel_pose.success = success;
+
+    //In particolare
+    //R = {k-1} -> {k}
+    //t = {k-1} -> {k} espresso in {k-1}
     
     return rel_pose;
 }
