@@ -347,12 +347,12 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     world_points.convertTo(world_points, CV_64F); //Converto nel tipo coerente con gli altri elementi
 
     /*---------------------------------------Reproject Error:--------------------------------------------------*/
-    /*vector<double> reproject_prev = reproject_error(world_points, R_prev, t_prev, cameraMatrix, keypoints1_conv_inlier);
+    //vector<double> reproject_prev = reproject_error(world_points, R_prev, t_prev, cameraMatrix, keypoints1_conv_inlier);
     vector<double> reproject_curr = reproject_error(world_points, R, t, cameraMatrix, keypoints2_conv_inlier);  
 
-    vector<double> reproject_mean(reproject_prev.size());
+    /*vector<double> reproject_mean(reproject_curr.size());
 
-    for(int i = 0; i < reproject_prev.size(); i++)
+    for(int i = 0; i < reproject_curr.size(); i++)
     {
         ROS_INFO("Reproject Error:");
         ROS_INFO("Prev frame: %f | Curr frame: %f", reproject_prev[i], reproject_curr[i]);
@@ -394,10 +394,10 @@ vector<double> reproject_error(Mat world_points, Mat R, Mat t, Mat cameraMatrix,
 
     for(int i = 0; i < reproject_point.rows; i++)
     {
-        //ROS_INFO("Keypoint 2D: [%f, %f] \t Reprojected World Point: [%f, %f]", img_points[i].x, img_points[i].y, reproject_point.at<double>(i, 0), reproject_point.at<double>(i, 1));
+        ROS_INFO("Keypoint 2D: [%f, %f] \t Reprojected World Point: [%f, %f]", img_points[i].x, img_points[i].y, reproject_point.at<double>(i, 0), reproject_point.at<double>(i, 1));
         reproject_err[i] = sqrt(pow(img_points[i].x - reproject_point.at<double>(i, 0), 2.0) + pow(img_points[i].y - reproject_point.at<double>(i, 1), 2.0));
     }
-    //ROS_INFO("----------------------");
+    ROS_INFO("----------------------");
 
     return reproject_err;
 }
