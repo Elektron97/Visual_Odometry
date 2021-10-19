@@ -337,20 +337,17 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     Mat prevMatrix = projectionMatrix(R_prev, t_prev, cameraMatrix); 
     Mat currMatrix = projectionMatrix(R, t, cameraMatrix);
 
-    Mat world_points; 
-    triangulatePoints(prevMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points);
-
-    cout << world_points.row(3) << endl;
+    Mat world_points4d, world_points; 
+    triangulatePoints(prevMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points4d);
 
     /****************************************************
      * world_points sono espressi in coordinate {k-1}   *
      ****************************************************/
 
-    world_points = world_points.rowRange(0, 3);
-    world_points.convertTo(world_points, CV_64F); //Converto nel tipo coerente con gli altri elementi
-
+    convertPointsFromHomogeneous(world_points4d.t(), world_points);
+    
     /*---------------------------------------Reproject Error:--------------------------------------------------*/
-    /*vector<double> reproject_prev = reproject_error(world_points, R_prev, t_prev, cameraMatrix, keypoints1_conv_inlier);
+    vector<double> reproject_prev = reproject_error(world_points, R_prev, t_prev, cameraMatrix, keypoints1_conv_inlier);
     vector<double> reproject_curr = reproject_error(world_points, R, t, cameraMatrix, keypoints2_conv_inlier);  
 
     vector<double> reproject_mean(reproject_curr.size());
@@ -363,7 +360,7 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
         reproject_mean[i] = (reproject_prev[i] + reproject_curr[i])/2.0;
         ROS_INFO("Mean: %f", reproject_mean[i]);
     }
-    ROS_INFO("-----------------------------------------");*/
+    ROS_INFO("-----------------------------------------");
     /*----------------------------------------------------------------------------------------------------------*/
 
     //Convert from Prev camera coord in Curr camera coord
