@@ -100,6 +100,7 @@ double scaleFactor(float distance, Mat worldPoints);
 
 //Absolute Pose
 vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat world_points);
+vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF); //overload per success = false
 
 //Robustness of code
 bool checkIfMoving(KpAsPoint2f_Match kP);
@@ -339,6 +340,8 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     Mat world_points; 
     triangulatePoints(prevMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points);
 
+    cout << world_points.row(3) << endl;
+
     /****************************************************
      * world_points sono espressi in coordinate {k-1}   *
      ****************************************************/
@@ -347,10 +350,10 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     world_points.convertTo(world_points, CV_64F); //Converto nel tipo coerente con gli altri elementi
 
     /*---------------------------------------Reproject Error:--------------------------------------------------*/
-    //vector<double> reproject_prev = reproject_error(world_points, R_prev, t_prev, cameraMatrix, keypoints1_conv_inlier);
+    /*vector<double> reproject_prev = reproject_error(world_points, R_prev, t_prev, cameraMatrix, keypoints1_conv_inlier);
     vector<double> reproject_curr = reproject_error(world_points, R, t, cameraMatrix, keypoints2_conv_inlier);  
 
-    /*vector<double> reproject_mean(reproject_curr.size());
+    vector<double> reproject_mean(reproject_curr.size());
 
     for(int i = 0; i < reproject_curr.size(); i++)
     {
@@ -383,21 +386,21 @@ vector<double> reproject_error(Mat world_points, Mat R, Mat t, Mat cameraMatrix,
      ************************************************************************/
 
     //Reproject world_points (3D) in 2D image plan, using projectPoints
-    Mat reproject_point;
+    Mat reproject_points;
     Mat Rvec;
     Rodrigues(R, Rvec);
 
-    projectPoints(world_points, Rvec, t, cameraMatrix, noArray(), reproject_point); 
+    projectPoints(world_points, Rvec, t, cameraMatrix, noArray(), reproject_points); 
 
     //Compute reproject error
     vector<double> reproject_err(img_points.size());
 
-    for(int i = 0; i < reproject_point.rows; i++)
+    for(int i = 0; i < reproject_points.rows; i++)
     {
-        ROS_INFO("Keypoint 2D: [%f, %f] \t Reprojected World Point: [%f, %f]", img_points[i].x, img_points[i].y, reproject_point.at<double>(i, 0), reproject_point.at<double>(i, 1));
-        reproject_err[i] = sqrt(pow(img_points[i].x - reproject_point.at<double>(i, 0), 2.0) + pow(img_points[i].y - reproject_point.at<double>(i, 1), 2.0));
+        //ROS_INFO("Keypoint 2D: [%f, %f] \t Reprojected World Point: [%f, %f]", img_points[i].x, img_points[i].y, reproject_points.at<double>(i, 0), reproject_points.at<double>(i, 1));
+        reproject_err[i] = sqrt(pow(img_points[i].x - reproject_points.at<double>(i, 0), 2.0) + pow(img_points[i].y - reproject_points.at<double>(i, 1), 2.0));
     }
-    ROS_INFO("----------------------");
+    //ROS_INFO("----------------------");
 
     return reproject_err;
 }
@@ -455,6 +458,29 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
     }
 
     vector<Mat> absPose = {scaled_loc, orient_wk, world_pointsW};
+
+    return absPose;
+}
+
+//Overload nel caso di success = false
+vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF)
+{
+    /************************************************************
+     * Input:                                                   *
+     * >rotm: Matrice di rotazione {W} -> {k-1}                 *
+     * >tran: Vettore da {W} a {k-1}, espresso in coord. {W}    *
+     * >orient: Matrice di rotazione {k-1} -> {k}               *
+     * >loc: Vettore da {k-1} a {k}, espresso in coord. {k-1}   *
+     * >SF: Scale factor.                                       *
+    *************************************************************/
+
+    //Trasformo loc = t_{k-1, k}^(k-1) in t_{w, k}^w
+    Mat scaled_loc = coordTransf(SF*loc, rotm.t(), tran);
+    
+    //orient_wk: Matrice di rotazione dal frame {W} al frame {k}
+    Mat orient_wk = orient*rotm;
+
+    vector<Mat> absPose = {scaled_loc, orient_wk};
 
     return absPose;
 }

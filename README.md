@@ -249,6 +249,7 @@ int main(int argc, char * argv[])
 - [ ] Absolute Pose
 
 #### Task List:
+- [ ] Problemi su triangulatePoints() -> worldPoints(4, :) dovrebbero essere tutti 1!
 - [ ] Reprojection in Curr frame troppo alto, rivedere.
 - [ ] image_transport compressed.
 - [ ] Provare cv_bridge con opencv_contrib 3.2.0.

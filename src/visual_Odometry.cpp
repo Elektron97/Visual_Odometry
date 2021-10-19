@@ -45,7 +45,6 @@ using namespace cv::xfeatures2d;
 Mat Rbc; //Matrice {Body} -> {Camera}
 
 //Settings
-bool jumpCond = true;
 bool motion2D = true;   //Planar motion: [x y yaw]
 
 /*GLOBAL VARIABLES*/
@@ -338,10 +337,23 @@ int main(int argc, char **argv)
         float distance = laser.ranges[0]; //from MATLAB laser_msg{i, 1}.Ranges(1);
         
         /*TRIANGULATE POINTS AND ESTIMATE SCALE FACTOR*/
-        Mat world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);       
 
-        //Scale Factor
-        double SF = scaleFactor(distance, world_points);
+        Mat world_points;
+        double SF = 0;
+
+        //Salto triangPoints se success e' false
+        if(rel_pose.success)
+        {
+            world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
+
+            //Scale Factor
+            SF = scaleFactor(distance, world_points);
+
+            break;
+        }
+
+        else
+            SF = 1.0;
 
         /*VELOCITY ESTIMATION*/
         //deltaT
@@ -356,11 +368,23 @@ int main(int argc, char **argv)
         double estimate_ang = deltaPsi/deltaT.toSec();
 
         /*ABSOLUTE POSE*/
-        vector<Mat> absPose = absolutePose(orientation, location, R, t, SF, world_points);
+        if(rel_pose.success)
+        {
+            vector<Mat> absPose = absolutePose(orientation, location, R, t, SF, world_points);
         
-        Mat world_pointsW = absPose[2];
-        location = absPose[0];
-        orientation = absPose[1];
+            Mat world_pointsW = absPose[2];
+            location = absPose[0];
+            orientation = absPose[1];
+        }
+
+        else
+        {
+            vector<Mat> absPose = absolutePose(orientation, location, R, t, SF);
+
+            location = absPose[0];
+            orientation = absPose[1];
+        }
+
 
         if(motion2D)
             location.at<double>(2) = ground_truth.pose.pose.position.z; //uso il GT per la profondita'
@@ -384,7 +408,7 @@ int main(int argc, char **argv)
 
         /*PUBLISH WORLD POINTS AS POINT CLOUD*/
         //creating cloud object
-        pcl::PointCloud<pcl::PointXYZ> cloud;
+        /*pcl::PointCloud<pcl::PointXYZ> cloud;
 
         //creating pc2 object
         sensor_msgs::PointCloud2 wp_cloud;
@@ -400,7 +424,7 @@ int main(int argc, char **argv)
 
         pcl::toROSMsg(cloud, wp_cloud);
         wp_cloud.header.frame_id = "world_points";
-        pub_pcl.publish(wp_cloud);
+        pub_pcl.publish(wp_cloud);*/
 
         /*SHOW RESULTS*/
         //print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
