@@ -259,3 +259,6 @@ int main(int argc, char * argv[])
 - [x] Sistemare il matching.
 - [x] Vedere perche' R e t non tornano molto.
 - [x] Valid Point Fraction (VPF) in OpenCV.
+
+
+https://forum.opencv.org/t/easy-way-to-compare-quality-of-keypoints/4939/3

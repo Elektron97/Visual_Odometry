@@ -354,9 +354,6 @@ int main(int argc, char **argv)
 
             //Scale Factor
             SF = scaleFactor(distance, world_points); //Debug
-            //SF = 1.0;
-
-            break;
         }
 
         /*VELOCITY ESTIMATION*/

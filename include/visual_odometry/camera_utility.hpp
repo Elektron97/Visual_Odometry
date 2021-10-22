@@ -338,9 +338,6 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     Mat prevMatrix = projectionMatrix(R_prev, t_prev, cameraMatrix); 
     Mat currMatrix = projectionMatrix(R, t, cameraMatrix);
 
-    //prevMatrix.convertTo(prevMatrix, CV_32F);
-    //currMatrix.convertTo(currMatrix, CV_32F);
-
     Mat world_points4d;
     triangulatePoints(prevMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points4d);
 
@@ -348,29 +345,43 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
      * world_points sono espressi in coordinate {k-1}   *
      ****************************************************/
 
+    /*Mat struct_points;
+    cout << "Debug: Prima convertPointsFromHomogeneous" << endl;
+    convertPointsFromHomogeneous(world_points4d.t(), struct_points);
+    cout << "Debug: Dopo convertPointsFromHomogeneous" << endl;
+
+    struct_points.convertTo(struct_points, CV_64F);
+
+    //Funzione da Simone Tani
+    // PER RIOTTENERE UNA MATRICE Nx3 A PARTIRE DALLA STRUTTURA DI N COMPONENTI, POSSIAMO FARE COSI':
     Mat world_points;
-    convertPointsFromHomogeneous(world_points4d.t(), world_points);
+    int row_index = 0;
+    for (int i = 0; row_index < struct_points.rows; i = i+3)
+    {
+        Mat current_row;
+        current_row = (Mat1d(1, 3) << struct_points.at<double>(i), struct_points.at<double>(i+1), struct_points.at<double>(i+2));
+        world_points.push_back(current_row);
+        row_index++;
+    }*/
 
-    cout << "test" << endl;
-
-    //world_points = world_points4d.rowRange(0, 3);
-    //world_points.convertTo(world_points, CV_64F);
+    Mat world_points = my_convertFromHom(world_points4d);
+    world_points.convertTo(world_points, CV_64F);
 
     /*---------------------------------------Reproject Error:--------------------------------------------------*/
-    /*vector<double> reproject_prev = reproject_error(world_points, R_prev, t_prev, cameraMatrix, keypoints1_conv_inlier);
-    vector<double> reproject_curr = reproject_error(world_points, Ttest[0], Ttest[1], cameraMatrix, keypoints2_conv_inlier);  
+    vector<double> reproject_prev = reproject_error(world_points, R_prev, t_prev, cameraMatrix, keypoints1_conv_inlier);
+    vector<double> reproject_curr = reproject_error(world_points, R, t, cameraMatrix, keypoints2_conv_inlier);  
 
     vector<double> reproject_mean(reproject_curr.size());
 
     for(int i = 0; i < reproject_curr.size(); i++)
     {
-        ROS_INFO("Reproject Error:");
-        ROS_INFO("Prev frame: %f | Curr frame: %f", reproject_prev[i], reproject_curr[i]);
+        //ROS_INFO("Reproject Error:");
+        //ROS_INFO("Prev frame: %f | Curr frame: %f", reproject_prev[i], reproject_curr[i]);
 
         reproject_mean[i] = (reproject_prev[i] + reproject_curr[i])/2.0;
-        ROS_INFO("Mean: %f", reproject_mean[i]);
+        //ROS_INFO("Mean: %f", reproject_mean[i]);
     }
-    ROS_INFO("-----------------------------------------");*/
+    //ROS_INFO("-----------------------------------------");
     /*----------------------------------------------------------------------------------------------------------*/
 
     //Convert from Prev camera coord in Curr camera coord
@@ -599,6 +610,10 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
         //finally, recoverPose()
         int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
 
+        //Nonostante nella doc di OpenCV e' presente, qui sembra non esserci questo overload.
+        //Mat world_points_test;
+        //int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t, 50, RANSAC_mask, world_points_test);
+
         float validPointFraction = (float) validInlier/inlier_converted.Kpoints1.size();
 
         //ROS_INFO("VPF: %f", validPointFraction);
@@ -632,5 +647,16 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 
 Mat my_convertFromHom(Mat points4d)
 {
-    return (points4d.rowRange(0, 3))/(points4d.at<float>(3));
+    CV_Assert((points4d.rows == 4) &&  (points4d.type() == CV_32F));
+
+    int cols = points4d.cols;
+
+    Mat points3d(3, cols, points4d.type());
+
+    for(int i = 0; i < cols; i++)
+    {
+        points3d.col(i) = (points4d.col(i).rowRange(0, 3))/(points4d.col(i).at<float>(3));
+    }
+
+    return points3d;    
 }
