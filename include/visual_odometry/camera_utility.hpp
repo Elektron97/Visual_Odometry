@@ -107,6 +107,7 @@ bool checkIfMoving(KpAsPoint2f_Match kP);
 bool checkMinFeat(KpAsPoint2f_Match kP);
 
 RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix);
+Mat my_convertFromHom(Mat points4d);
 
 /*********Source**********/
 
@@ -335,7 +336,10 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
      ************************************************/
 
     Mat prevMatrix = projectionMatrix(R_prev, t_prev, cameraMatrix); 
-    Mat currMatrix = projectionMatrix(R, t, cameraMatrix);
+
+    vector<Mat> Ttest = cameraPoseToExtrinsic(R, t);
+
+    Mat currMatrix = projectionMatrix(Ttest[0], Ttest[1], cameraMatrix);
 
     Mat world_points4d;
     triangulatePoints(prevMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points4d);
@@ -343,15 +347,18 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     /****************************************************
      * world_points sono espressi in coordinate {k-1}   *
      ****************************************************/
-    Mat world_points; //(3, world_points4d.cols, CV_64F);
-    convertPointsFromHomogeneous(world_points4d.t(), world_points);
 
-    //world_points = world_points4d.rowRange(0, 3);
-    //world_points.convertTo(world_points, CV_64F);
+    Mat world_points; //(3, world_points4d.cols, CV_64F);
+    //convertPointsFromHomogeneous(world_points4d.t(), world_points);
+
+    //Mat world_points = my_convertFromHom(world_points4d);
+
+    world_points = world_points4d.rowRange(0, 3);
+    world_points.convertTo(world_points, CV_64F);
 
     /*---------------------------------------Reproject Error:--------------------------------------------------*/
     /*vector<double> reproject_prev = reproject_error(world_points, R_prev, t_prev, cameraMatrix, keypoints1_conv_inlier);
-    vector<double> reproject_curr = reproject_error(world_points, R, t, cameraMatrix, keypoints2_conv_inlier);  
+    vector<double> reproject_curr = reproject_error(world_points, Ttest[0], Ttest[1], cameraMatrix, keypoints2_conv_inlier);  
 
     vector<double> reproject_mean(reproject_curr.size());
 
@@ -447,7 +454,8 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
     Mat scaled_loc = coordTransf(SF*loc, rotm.t(), tran);
     
     //orient_wk: Matrice di rotazione dal frame {W} al frame {k}
-    Mat orient_wk = orient*rotm;
+    //Mat orient_wk = orient*rotm;
+    Mat orient_wk = rotm*orient;
 
     //Trasformo in coordinate {W} i world_points.
     Mat world_pointsW(world_points.rows, world_points.cols, CV_64F);
@@ -590,4 +598,9 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
      ********************************************/
     
     return rel_pose;
+}
+
+Mat my_convertFromHom(Mat points4d)
+{
+    return (points4d.rowRange(0, 3))/(points4d.at<float>(3));
 }

@@ -289,7 +289,7 @@ int main(int argc, char **argv)
 
         if(!checkIfMoving(kP_converted))
         {
-            ROS_WARN("Robot is not moving! Skip Iteration!");
+            //ROS_WARN("Robot is not moving! Skip Iteration!");
             continue;
         } 
 
@@ -300,6 +300,8 @@ int main(int argc, char **argv)
         RelativePose rel_pose = estimateRelativePose(kP_converted, cameraMatrix);
 
         KpAsPoint2f_Match inlier_converted = rel_pose.inlier_points;
+
+        show_inlier(inlier_converted, prev_img, curr_img);
 
         if(rel_pose.success)
         {
@@ -347,9 +349,9 @@ int main(int argc, char **argv)
             world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
 
             //Scale Factor
-            SF = scaleFactor(distance, world_points);
-
-            break;
+            //SF = scaleFactor(distance, world_points);
+            SF = 1.0;
+            //break;
         }
 
         else
@@ -367,12 +369,14 @@ int main(int argc, char **argv)
         double deltaPsi = atan2(R.at<double>(0, 0), R.at<double>(0, 1));
         double estimate_ang = deltaPsi/deltaT.toSec();
 
+        Mat world_pointsW;
+
         /*ABSOLUTE POSE*/
         if(rel_pose.success)
         {
             vector<Mat> absPose = absolutePose(orientation, location, R, t, SF, world_points);
         
-            Mat world_pointsW = absPose[2];
+            world_pointsW = absPose[2];
             location = absPose[0];
             orientation = absPose[1];
         }
@@ -403,6 +407,9 @@ int main(int argc, char **argv)
         error_pos.x = abs(GTpos.x - estimate_pos.x);
         error_pos.y = abs(GTpos.y - estimate_pos.y);
         error_pos.z = abs(GTpos.z - estimate_pos.z);
+        /*error_pos.x = abs(estimate_pos.x);
+        error_pos.y = abs(estimate_pos.y);
+        error_pos.z = abs(estimate_pos.z);*/
 
         pub_err.publish(error_pos);
 
@@ -413,13 +420,16 @@ int main(int argc, char **argv)
         //creating pc2 object
         sensor_msgs::PointCloud2 wp_cloud;
 
-        cloud.points.resize(world_pointsW.cols);
-
-        for(int i = 0; i < world_pointsW.cols; i++)
+        if(rel_pose.success)
         {
-            cloud.points[i].x = world_pointsW.at<double>(0, i);
-            cloud.points[i].y = world_pointsW.at<double>(1, i);
-            cloud.points[i].z = world_pointsW.at<double>(2, i);
+            cloud.points.resize(world_pointsW.cols);
+
+            for(int i = 0; i < world_pointsW.cols; i++)
+            {
+                cloud.points[i].x = world_pointsW.at<double>(0, i);
+                cloud.points[i].y = world_pointsW.at<double>(1, i);
+                cloud.points[i].z = world_pointsW.at<double>(2, i);
+            }
         }
 
         pcl::toROSMsg(cloud, wp_cloud);
