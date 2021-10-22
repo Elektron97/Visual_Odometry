@@ -210,3 +210,55 @@ double median(vector<double> v)
       return v[size / 2.0];
   }
 }
+
+/*CLASSES*/
+/*class OmogTransf
+{
+    Mat R;
+    Mat t;
+    Mat T;
+
+    public:
+    OmogTransf(Mat rot, Mat trasl)
+    {
+        R = rot;
+        t = trasl;
+
+        T = omogMatrix(rot, trasl);
+    }
+
+    Mat rotoTrasl(Mat vector)
+    {
+        //Dimensioni del vettore
+        int rows_v = vector.rows;
+        int cols_v = vector.cols;
+
+        bool isRowVector = (rows_v == 1);
+        bool isColVector = (cols_v == 1);
+        bool isScalar = (isRowVector && isColVector);
+
+        //if(isRowVector || isScalar)
+        //    ROS_ERROR("Vettore riga e Scalari non supportati.");
+
+        if(isColVector)
+        {
+            if(rows_v == 3)
+                return coordTransf(vector, R, t);
+            
+            elseif(rows_v == 4)
+                return coordTransf(vector.rowRange(0, 3), R, t);
+
+            //else
+            //    ROS_ERROR("Dimensione non supportata.");
+        }
+            
+    }
+
+    OmogTransf inverseOmog()
+    {
+        OmogTransf invT(R.t(), -R.t()*t);
+        return invT;
+    }
+
+    
+};*/

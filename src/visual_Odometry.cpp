@@ -234,7 +234,7 @@ int main(int argc, char **argv)
 
     /*INITIALIZATION*/
     //ENU matrix rotation
-    Rbc = (Mat1d(3, 3) << 0, 0, 1, -1, 0, 0, 0, -1, 0); //Body -> Camera
+    Rbc = (Mat1d(3, 3) << 0, 0, 1, -1, 0, 0, 0, -1, 0); //{Body} -> {Camera}
 
     //Intrinsic Parameters
     Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
@@ -246,10 +246,10 @@ int main(int argc, char **argv)
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
     //convert quaternion in Rotational Matrix
-    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //ENU -> Body (all'istante k-1)
-    Mat orientation = Rbc*orientation_body; //ENU -> Camera (all'istante k-1)
-    Mat location = pos2Mat(ground_truth.pose.pose.position);
-
+    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //{ENU} -> {Body} (all'istante k-1)
+    Mat orientation = Rbc*orientation_body; //{ENU} -> {Camera} (all'istante k-1)
+    Mat location = pos2Mat(ground_truth.pose.pose.position); //trasl {ENU} -> {Body} (Camera)
+ 
     //boolean variables for fail detection
     bool fail_detection = false; //Quando il n° di features e' minore della tolleranza
 
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
 
         KpAsPoint2f_Match inlier_converted = rel_pose.inlier_points;
 
-        show_inlier(inlier_converted, prev_img, curr_img);
+        show_inlier(inlier_converted, prev_img, curr_img); //if showInlier == true 
 
         if(rel_pose.success)
         {
@@ -316,20 +316,20 @@ int main(int argc, char **argv)
             //t_k-1 == t_k
         }
 
-        //da aggiornare
-        /*************NOTA SU R, t***************
-         * currFrame = k; prevFrame = k-1       *
-         * [...]^k -> espresso in coordinate k  *
+        /******NOTA SULLA TRASF. OMOGENEA********
+         * R e t sono gli elementi della trasf. *
+         * omogenea da {k-1} a {k}.             *
+         * Dunque, un vettore espresso in {k-1} *
+         * viene rototraslato nel frame {k}.    *
          ****************************************/
 
         if(motion2D)
         {
             //NAV 2D
             t.at<double>(2) = 0.0;
-
             //rotm2eul
             Vec3f euler_angles = rotationMatrixToEulerAngles(R);
-            //yaw: 
+            //yaw 
             double yaw_angle = euler_angles(0);
 
             R = rotz(yaw_angle);
@@ -339,7 +339,6 @@ int main(int argc, char **argv)
         float distance = laser.ranges[0]; //from MATLAB laser_msg{i, 1}.Ranges(1);
         
         /*TRIANGULATE POINTS AND ESTIMATE SCALE FACTOR*/
-
         Mat world_points;
         double SF = 0;
 
@@ -349,9 +348,9 @@ int main(int argc, char **argv)
             world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
 
             //Scale Factor
-            //SF = scaleFactor(distance, world_points);
+            //SF = scaleFactor(distance, world_points); //Debug
             SF = 1.0;
-            //break;
+            //break;    //Debug
         }
 
         else
@@ -377,17 +376,19 @@ int main(int argc, char **argv)
             vector<Mat> absPose = absolutePose(orientation, location, R, t, SF, world_points);
         
             world_pointsW = absPose[2];
-            location = absPose[0];
-            orientation = absPose[1];
+            location = absPose[0];      //[t_w,k]^W
+            orientation = absPose[1];   //R_wk ({W} -> {k})
         }
 
         else
         {
             vector<Mat> absPose = absolutePose(orientation, location, R, t, SF);
 
-            location = absPose[0];
-            orientation = absPose[1];
+            location = absPose[0];      //[t_w,k]^W
+            orientation = absPose[1];   //R_wk ({W} -> {k})
         }
+
+        ROS_INFO("Debug for y estimate position.");
 
 
         if(motion2D)
@@ -399,19 +400,17 @@ int main(int argc, char **argv)
         estimate_pos.y = location.at<double>(1);
         estimate_pos.z = location.at<double>(2);
 
-        geometry_msgs::Point GTpos = ground_truth.pose.pose.position;
-        geometry_msgs::Vector3 GTrpy = mat2Euler(Rbc*quat2Mat(ground_truth.pose.pose.orientation));
+        geometry_msgs::Point GTpos = ground_truth.pose.pose.position; //{ENU} -> {Camera} (istante k)
+        geometry_msgs::Vector3 GTrpy = mat2Euler(Rbc*quat2Mat(ground_truth.pose.pose.orientation)); //{ENU} -> {Camera} (istante k)
 
         /*PUBLISH ERROR*/
         geometry_msgs::Vector3 error_pos;
         error_pos.x = abs(GTpos.x - estimate_pos.x);
         error_pos.y = abs(GTpos.y - estimate_pos.y);
         error_pos.z = abs(GTpos.z - estimate_pos.z);
-        /*error_pos.x = abs(estimate_pos.x);
-        error_pos.y = abs(estimate_pos.y);
-        error_pos.z = abs(estimate_pos.z);*/
 
         pub_err.publish(error_pos);
+        //pub_err.publish(estimate_pos);
 
         /*PUBLISH WORLD POINTS AS POINT CLOUD*/
         //creating cloud object
