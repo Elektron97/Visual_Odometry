@@ -336,10 +336,10 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
      ************************************************/
 
     Mat prevMatrix = projectionMatrix(R_prev, t_prev, cameraMatrix); 
+    Mat currMatrix = projectionMatrix(R, t, cameraMatrix);
 
-    vector<Mat> Ttest = cameraPoseToExtrinsic(R, t);
-
-    Mat currMatrix = projectionMatrix(Ttest[0], Ttest[1], cameraMatrix);
+    //prevMatrix.convertTo(prevMatrix, CV_32F);
+    //currMatrix.convertTo(currMatrix, CV_32F);
 
     Mat world_points4d;
     triangulatePoints(prevMatrix, currMatrix, keypoints1_conv_inlier, keypoints2_conv_inlier, world_points4d);
@@ -348,13 +348,13 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
      * world_points sono espressi in coordinate {k-1}   *
      ****************************************************/
 
-    Mat world_points; //(3, world_points4d.cols, CV_64F);
-    //convertPointsFromHomogeneous(world_points4d.t(), world_points);
+    Mat world_points;
+    convertPointsFromHomogeneous(world_points4d.t(), world_points);
 
-    //Mat world_points = my_convertFromHom(world_points4d);
+    cout << "test" << endl;
 
-    world_points = world_points4d.rowRange(0, 3);
-    world_points.convertTo(world_points, CV_64F);
+    //world_points = world_points4d.rowRange(0, 3);
+    //world_points.convertTo(world_points, CV_64F);
 
     /*---------------------------------------Reproject Error:--------------------------------------------------*/
     /*vector<double> reproject_prev = reproject_error(world_points, R_prev, t_prev, cameraMatrix, keypoints1_conv_inlier);

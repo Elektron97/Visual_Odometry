@@ -256,7 +256,13 @@ int main(int argc, char **argv)
     //Relative Orientation and Location
     Mat R = Mat::eye(3, 3, CV_64F);
     Mat t = Mat::zeros(3, 1, CV_64F);
+
+    //Scale Factor
+    double SF = 1.0;
     
+    //World Points in {W} coordinates
+    Mat world_pointsW;
+
     /*ITERATIONS*/
     while(ros::ok())
     {
@@ -340,21 +346,18 @@ int main(int argc, char **argv)
         
         /*TRIANGULATE POINTS AND ESTIMATE SCALE FACTOR*/
         Mat world_points;
-        double SF = 0;
-
+        
         //Salto triangPoints se success e' false
         if(rel_pose.success)
         {
             world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
 
             //Scale Factor
-            //SF = scaleFactor(distance, world_points); //Debug
-            SF = 1.0;
-            //break;    //Debug
-        }
+            SF = scaleFactor(distance, world_points); //Debug
+            //SF = 1.0;
 
-        else
-            SF = 1.0;
+            break;
+        }
 
         /*VELOCITY ESTIMATION*/
         //deltaT
@@ -367,8 +370,6 @@ int main(int argc, char **argv)
         //angular velocity
         double deltaPsi = atan2(R.at<double>(0, 0), R.at<double>(0, 1));
         double estimate_ang = deltaPsi/deltaT.toSec();
-
-        Mat world_pointsW;
 
         /*ABSOLUTE POSE*/
         if(rel_pose.success)
@@ -387,9 +388,6 @@ int main(int argc, char **argv)
             location = absPose[0];      //[t_w,k]^W
             orientation = absPose[1];   //R_wk ({W} -> {k})
         }
-
-        ROS_INFO("Debug for y estimate position.");
-
 
         if(motion2D)
             location.at<double>(2) = ground_truth.pose.pose.position.z; //uso il GT per la profondita'
@@ -433,6 +431,8 @@ int main(int argc, char **argv)
 
         pcl::toROSMsg(cloud, wp_cloud);
         wp_cloud.header.frame_id = "world_points";
+
+        //TO DO: Inserire un controllo su rel_pose.success
         pub_pcl.publish(wp_cloud);*/
 
         /*SHOW RESULTS*/
