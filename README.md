@@ -243,15 +243,15 @@ int main(int argc, char * argv[])
 - [x] Essential Matrix
 - [x] Removing Outlier with RANSAC
 - [x] Relative Pose
-- [ ] Triangulation
-- [ ] Scale Factor
-- [ ] World Points
-- [ ] Absolute Pose
+- [x] Triangulation
+- [x] Scale Factor
+- [x] World Points
+- [x] Absolute Pose
 
 #### Task List:
-- [ ] Controllare e aggiornare Absolute Pose().
-- [ ] Problemi su triangulatePoints() -> worldPoints(4, :) dovrebbero essere tutti 1!
-- [ ] Reprojection in Curr frame troppo alto, rivedere.
+- [x] Controllare e aggiornare Absolute Pose().
+- [x] Problemi su triangulatePoints() -> worldPoints(4, :) dovrebbero essere tutti 1!
+- [x] Reprojection in Curr frame troppo alto, rivedere.
 - [ ] image_transport compressed.
 - [ ] Provare cv_bridge con opencv_contrib 3.2.0.
 - [ ] Scrivere la relazione.

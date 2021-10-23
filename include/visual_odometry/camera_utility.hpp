@@ -348,24 +348,6 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
      * world_points sono espressi in coordinate {k-1}   *
      ****************************************************/
 
-    /*Mat struct_points;
-    cout << "Debug: Prima convertPointsFromHomogeneous" << endl;
-    convertPointsFromHomogeneous(world_points4d.t(), struct_points);
-    cout << "Debug: Dopo convertPointsFromHomogeneous" << endl;
-
-    struct_points.convertTo(struct_points, CV_64F);
-
-    // PER RIOTTENERE UNA MATRICE Nx3 A PARTIRE DALLA STRUTTURA DI N COMPONENTI, POSSIAMO FARE COSI':
-    Mat world_points;
-    int row_index = 0;
-    for (int i = 0; row_index < struct_points.rows; i = i+3)
-    {
-        Mat current_row;
-        current_row = (Mat1d(1, 3) << struct_points.at<double>(i), struct_points.at<double>(i+1), struct_points.at<double>(i+2));
-        world_points.push_back(current_row);
-        row_index++;
-    }*/
-
     Mat world_points = my_convertFromHom(world_points4d);
     world_points.convertTo(world_points, CV_64F);
 
@@ -389,15 +371,7 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     //Discard bad world_points with high reprojection error
     Mat goodWP = filter_convertWP(world_points, reproject_mean, R, t);
 
-    //Convert from Prev camera coord in Curr camera coord
-    for(int i = 0; i < world_points.cols; i++)
-    {
-        world_points.col(i) = coordTransf(world_points.col(i), R, t);
-    }
-
-    return world_points;
-
-    //return goodWP;
+    return goodWP;
 }
 
 vector<double> reproject_error(Mat world_points, Mat R, Mat t, Mat cameraMatrix, vector<Point2f> img_points)
@@ -430,15 +404,17 @@ vector<double> reproject_error(Mat world_points, Mat R, Mat t, Mat cameraMatrix,
     return reproject_err;
 }
 
-double scaleFactor(float distance, Mat worldPoints)
+double scaleFactor(float distance, Mat world_points)
 {
     double Zsum = 0.0;
-    int N = worldPoints.cols;
+    int N = world_points.cols;
+
+    CV_Assert((world_points.rows == 3) && (world_points.type() == CV_64F) && (N != 0));
 
     //Calcolo la media
     for(int i = 0; i < N; i++)
     {
-        Zsum += worldPoints.at<double>(2, i);
+        Zsum += world_points.at<double>(2, i);
     } 
     
     double Zmean = Zsum / N;
@@ -446,7 +422,7 @@ double scaleFactor(float distance, Mat worldPoints)
     if(Zmean == 0)
     {
         ROS_ERROR("Z pari a 0!");
-        return 1.0; //per continuare il codice
+        return 1.0;
     }
 
     else

@@ -258,7 +258,7 @@ int main(int argc, char **argv)
     Mat t = Mat::zeros(3, 1, CV_64F);
 
     //Scale Factor
-    double SF = 1.0;
+    double SF = 1.0; //default value
     
     //World Points in {W} coordinates
     Mat world_pointsW;
@@ -295,7 +295,7 @@ int main(int argc, char **argv)
 
         if(!checkIfMoving(kP_converted))
         {
-            //ROS_WARN("Robot is not moving! Skip Iteration!");
+            ROS_WARN("Robot is not moving! Skip Iteration!");
             continue;
         } 
 
@@ -352,11 +352,14 @@ int main(int argc, char **argv)
         {
             world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
 
-            //Scale Factor
-            SF = scaleFactor(distance, world_points);
+            if(world_points.cols != 0)
+                SF = scaleFactor(distance, world_points);   //Update Scale Factor
 
-            break;
+            //else -> SF_k == Sf_k-1
         }
+
+        else
+            SF = 1.0;
 
         /*VELOCITY ESTIMATION*/
         //deltaT
@@ -407,17 +410,16 @@ int main(int argc, char **argv)
         error_pos.z = abs(GTpos.z - estimate_pos.z);
 
         pub_err.publish(error_pos);
-        //pub_err.publish(estimate_pos);
 
         /*PUBLISH WORLD POINTS AS POINT CLOUD*/
-        //creating cloud object
-        /*pcl::PointCloud<pcl::PointXYZ> cloud;
-
-        //creating pc2 object
-        sensor_msgs::PointCloud2 wp_cloud;
-
         if(rel_pose.success)
         {
+            //creating cloud object
+            pcl::PointCloud<pcl::PointXYZ> cloud;
+
+            //creating pc2 object
+            sensor_msgs::PointCloud2 wp_cloud;
+
             cloud.points.resize(world_pointsW.cols);
 
             for(int i = 0; i < world_pointsW.cols; i++)
@@ -426,16 +428,16 @@ int main(int argc, char **argv)
                 cloud.points[i].y = world_pointsW.at<double>(1, i);
                 cloud.points[i].z = world_pointsW.at<double>(2, i);
             }
+
+            pcl::toROSMsg(cloud, wp_cloud);
+            wp_cloud.header.frame_id = "world_points";
+
+            //TO DO: Inserire un controllo su rel_pose.success
+            pub_pcl.publish(wp_cloud);
         }
 
-        pcl::toROSMsg(cloud, wp_cloud);
-        wp_cloud.header.frame_id = "world_points";
-
-        //TO DO: Inserire un controllo su rel_pose.success
-        pub_pcl.publish(wp_cloud);*/
-
         /*SHOW RESULTS*/
-        //print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
 
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 
