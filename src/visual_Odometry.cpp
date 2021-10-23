@@ -353,7 +353,9 @@ int main(int argc, char **argv)
             world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
 
             //Scale Factor
-            SF = scaleFactor(distance, world_points); //Debug
+            SF = scaleFactor(distance, world_points);
+
+            break;
         }
 
         /*VELOCITY ESTIMATION*/

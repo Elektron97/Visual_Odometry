@@ -46,6 +46,9 @@ const float ratio_thresh = 0.7f;
 //Valid Point Fraction Threshold
 const float VPF_threshold = 0.85;
 
+/*Triangulation*/
+const float reprojection_tolerance = 0.5;
+
 /*****MAPPA VALORI PER TUNING minHessian*****
  * Desiderati: Circa 840.                   *
  * minHessian = 100 | KeyPoints: 600        *
@@ -108,6 +111,7 @@ bool checkMinFeat(KpAsPoint2f_Match kP);
 
 RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix);
 Mat my_convertFromHom(Mat points4d);
+Mat filter_convertWP(Mat world_points, vector<double> reproject_mean, Mat R, Mat t);
 
 /*********Source**********/
 
@@ -250,7 +254,6 @@ KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f
 
     inlierCount = 0;
     
-    //Select Inlier -> C'e' un modo migliore!
     for (int i=0; i<RANSAC_mask.size(); i++)
     {
         if (RANSAC_mask[i] != 0)
@@ -352,7 +355,6 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
 
     struct_points.convertTo(struct_points, CV_64F);
 
-    //Funzione da Simone Tani
     // PER RIOTTENERE UNA MATRICE Nx3 A PARTIRE DALLA STRUTTURA DI N COMPONENTI, POSSIAMO FARE COSI':
     Mat world_points;
     int row_index = 0;
@@ -384,6 +386,9 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     //ROS_INFO("-----------------------------------------");
     /*----------------------------------------------------------------------------------------------------------*/
 
+    //Discard bad world_points with high reprojection error
+    Mat goodWP = filter_convertWP(world_points, reproject_mean, R, t);
+
     //Convert from Prev camera coord in Curr camera coord
     for(int i = 0; i < world_points.cols; i++)
     {
@@ -391,6 +396,8 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
     }
 
     return world_points;
+
+    //return goodWP;
 }
 
 vector<double> reproject_error(Mat world_points, Mat R, Mat t, Mat cameraMatrix, vector<Point2f> img_points)
@@ -659,4 +666,23 @@ Mat my_convertFromHom(Mat points4d)
     }
 
     return points3d;    
+}
+
+Mat filter_convertWP(Mat world_points, vector<double> reproject_mean, Mat R, Mat t)
+{
+    CV_Assert((world_points.rows == 3) && (world_points.cols == reproject_mean.size()) && (world_points.type() == CV_64F)); 
+
+    Mat goodWP;
+
+    for(int i = 0; i < world_points.cols; i++)
+    {
+        if((reproject_mean[i] < reprojection_tolerance) && (world_points.at<double>(2, i)))
+        {
+            //goodWP.push_back(world_points.col(i).t()); //goodWP in {k-1}
+            goodWP.push_back(coordTransf(world_points.col(i), R, t).t()); //converto direttamente nel frame {k}
+        }
+            
+            
+    }
+    return goodWP.t();
 }
