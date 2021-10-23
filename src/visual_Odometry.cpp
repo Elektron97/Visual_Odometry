@@ -34,7 +34,6 @@
 
 /*DEFINE*/
 #define FIRST_IMAGE 1
-#define viewId_stop 810 //da modificare
 #define FREQUENCY 10
 
 /*NAMESPACE*/
@@ -410,6 +409,7 @@ int main(int argc, char **argv)
         error_pos.z = abs(GTpos.z - estimate_pos.z);
 
         pub_err.publish(error_pos);
+        //pub_err.publish(estimate_pos);
 
         /*PUBLISH WORLD POINTS AS POINT CLOUD*/
         if(rel_pose.success)
@@ -432,7 +432,6 @@ int main(int argc, char **argv)
             pcl::toROSMsg(cloud, wp_cloud);
             wp_cloud.header.frame_id = "world_points";
 
-            //TO DO: Inserire un controllo su rel_pose.success
             pub_pcl.publish(wp_cloud);
         }
 
