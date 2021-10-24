@@ -649,8 +649,9 @@ Mat filter_convertWP(Mat world_points, vector<double> reproject_mean, Mat R, Mat
     CV_Assert((world_points.rows == 3) && (world_points.cols == reproject_mean.size()) && (world_points.type() == CV_64F)); 
 
     Mat goodWP;
+    int i = 0; //no re-create iteration variable
 
-    for(int i = 0; i < world_points.cols; i++)
+    for(i; i < world_points.cols; i++)
     {
         if((reproject_mean[i] < reprojection_tolerance) && (world_points.at<double>(2, i)))
         {
@@ -660,5 +661,24 @@ Mat filter_convertWP(Mat world_points, vector<double> reproject_mean, Mat R, Mat
             
             
     }
-    return goodWP.t();
+
+    //If is Empty, do not filter with other conditions
+    if(goodWP.empty())
+        return goodWP.t();
+
+    //selecting only world_points with acceptable value of Z coord
+    else
+    {
+        vector<double> mean_var = var_avgMat(goodWP.col(2));
+
+        Mat goodWP_z;
+
+        for(i = 0; i < goodWP.rows; i++)
+        {
+            if( (goodWP.at<double>(i, 2) <= mean_var[0] + 3.0*sqrt(mean_var[1])) && (goodWP.at<double>(i, 2) >= mean_var[0] - 3.0*sqrt(mean_var[1])) )
+                goodWP_z.push_back(goodWP.row(i));
+        }
+
+        return goodWP_z.t();
+    }
 }

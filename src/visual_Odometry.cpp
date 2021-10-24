@@ -294,7 +294,7 @@ int main(int argc, char **argv)
 
         if(!checkIfMoving(kP_converted))
         {
-            ROS_WARN("Robot is not moving! Skip Iteration!");
+            //ROS_WARN("Robot is not moving! Skip Iteration!");
             continue;
         } 
 
@@ -351,7 +351,7 @@ int main(int argc, char **argv)
         {
             world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
 
-            if(world_points.cols != 0)
+            if(!world_points.empty())
                 SF = scaleFactor(distance, world_points);   //Update Scale Factor
 
             //else -> SF_k == Sf_k-1
@@ -377,7 +377,7 @@ int main(int argc, char **argv)
         {
             vector<Mat> absPose = absolutePose(orientation, location, R, t, SF, world_points);
         
-            world_pointsW = absPose[2];
+            world_pointsW = absPose[2]; //[wp]^W
             location = absPose[0];      //[t_w,k]^W
             orientation = absPose[1];   //R_wk ({W} -> {k})
         }

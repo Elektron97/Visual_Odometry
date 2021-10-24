@@ -238,27 +238,14 @@ int main(int argc, char * argv[])
 -------------------------------------------------------------------------------------
 # Appunti per sviluppo del codice
 
-#### Check List sulle singole parti del codice:
-- [x] Detect and Match Features
-- [x] Essential Matrix
-- [x] Removing Outlier with RANSAC
-- [x] Relative Pose
-- [x] Triangulation
-- [x] Scale Factor
-- [x] World Points
-- [x] Absolute Pose
+#### Flow Chart:
+![alt text](/docs/img_relazione/vo_flowchart.png)
 
 #### Task List:
-- [x] Controllare e aggiornare Absolute Pose().
-- [x] Problemi su triangulatePoints() -> worldPoints(4, :) dovrebbero essere tutti 1!
-- [x] Reprojection in Curr frame troppo alto, rivedere.
 - [ ] image_transport compressed.
 - [ ] Provare cv_bridge con opencv_contrib 3.2.0.
 - [ ] Scrivere la relazione.
 - [ ] World Points su Rviz con riferimenti corretti. 
-- [x] Sistemare il matching.
-- [x] Vedere perche' R e t non tornano molto.
-- [x] Valid Point Fraction (VPF) in OpenCV.
 
 
 https://forum.opencv.org/t/easy-way-to-compare-quality-of-keypoints/4939/3

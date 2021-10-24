@@ -37,6 +37,7 @@ bool isRotationMatrix(Mat &R);
 Vec3f rotationMatrixToEulerAngles(Mat &R);
 
 double median(vector<double> v);
+vector<double> var_avgMat(Mat v);
 
 /*********Source**********/
 //TO DO -> Metterli in un .cpp?
@@ -211,54 +212,27 @@ double median(vector<double> v)
   }
 }
 
-/*CLASSES*/
-/*class OmogTransf
+vector<double> var_avgMat(Mat v)
 {
-    Mat R;
-    Mat t;
-    Mat T;
+    CV_Assert((v.cols == 1) && (v.type() == CV_64F)); //col vector (not empty) AND CV_64F format
+    int N = v.rows;
+    int i = 0;  //no re-create iteration variable
 
-    public:
-    OmogTransf(Mat rot, Mat trasl)
+    //Compute Mean
+    double mean = 0.0;
+    for(i; i < N; i++)
     {
-        R = rot;
-        t = trasl;
-
-        T = omogMatrix(rot, trasl);
+        mean += v.at<double>(i)/N;
     }
 
-    Mat rotoTrasl(Mat vector)
+    //Compute Variance
+    double variance = 0.0;
+
+    for(i = 0; i < N; i++)
     {
-        //Dimensioni del vettore
-        int rows_v = vector.rows;
-        int cols_v = vector.cols;
-
-        bool isRowVector = (rows_v == 1);
-        bool isColVector = (cols_v == 1);
-        bool isScalar = (isRowVector && isColVector);
-
-        //if(isRowVector || isScalar)
-        //    ROS_ERROR("Vettore riga e Scalari non supportati.");
-
-        if(isColVector)
-        {
-            if(rows_v == 3)
-                return coordTransf(vector, R, t);
-            
-            elseif(rows_v == 4)
-                return coordTransf(vector.rowRange(0, 3), R, t);
-
-            //else
-            //    ROS_ERROR("Dimensione non supportata.");
-        }
-            
+        variance += pow(v.at<double>(i) - mean, 2.0)/N;
     }
 
-    OmogTransf inverseOmog()
-    {
-        OmogTransf invT(R.t(), -R.t()*t);
-        return invT;
-    }
-
-    
-};*/
+    vector<double> statistic_values {mean, variance};
+    return statistic_values;
+}
