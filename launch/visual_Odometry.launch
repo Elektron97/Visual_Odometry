@@ -9,8 +9,18 @@
 
 <!--To do: rosparam per il file YAML-->
 
-<!--Plot Position for debug-->
-<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/error_pos"/>
+<!--Plot Results-->
+<!--Plot Estimate Variables-->
+<!--<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_pos"/>
+<node name="rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_rpy"/>
+<node name="vel_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_twist/linear"/>
+<node name="ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_twist/angular"/>-->
+
+<!--Plot Errors-->
+<!--<node name="err_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_pos"/>
+<node name="err_rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_rpy"/>
+<node name="err_vel_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/linear"/>
+<node name="err_ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/angular"/>-->
 
 <!--Visualizing World Points in Rviz-->
 <!--<node type="rviz" name="rviz" pkg="rviz" args="-d $(find visual_odometry)/rviz/world_points.rviz" />-->
