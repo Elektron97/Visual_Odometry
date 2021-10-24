@@ -10,6 +10,7 @@
 
 /*ROS MSGS*/
 #include "sensor_msgs/CompressedImage.h"
+#include "visual_odometry/vo_results.h"
 
 /*NAMESPACES*/
 using namespace std;
@@ -29,6 +30,7 @@ Mat quat2Mat(geometry_msgs::Quaternion quat);
 geometry_msgs::Vector3 mat2Euler(Mat R);
 geometry_msgs::Vector3 quat2Euler(geometry_msgs::Quaternion quat);
 Mat pos2Mat(geometry_msgs::Point pos);
+geometry_msgs::Vector3 mat2Vec3(Mat pos_mat);
 Mat coordTransf(Mat vector, Mat R, Mat t); //Trasformazione esplicita omogenea
 Mat omogMatrix(Mat R, Mat t); //Matrice Omogenea
 
@@ -38,6 +40,9 @@ Vec3f rotationMatrixToEulerAngles(Mat &R);
 
 double median(vector<double> v);
 vector<double> var_avgMat(Mat v);
+
+geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Vector3 v1, geometry_msgs::Vector3 v2);
+geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Point v1, geometry_msgs::Vector3 v2);
 
 /*********Source**********/
 //TO DO -> Metterli in un .cpp?
@@ -125,6 +130,17 @@ Mat pos2Mat(geometry_msgs::Point pos)
 {
     Mat pos_mat = (Mat1d(3, 1) << pos.x, pos.y, pos.z);
     return pos_mat;
+}
+
+geometry_msgs::Vector3 mat2Vec3(Mat pos_mat)
+{
+    //To do: Inserire CV_Assert()
+    geometry_msgs::Vector3 pos;
+    pos.x = pos_mat.at<double>(0);
+    pos.y = pos_mat.at<double>(1);
+    pos.z = pos_mat.at<double>(2);
+
+    return pos;
 }
 
 Mat coordTransf(Mat vector, Mat R, Mat t)
@@ -235,4 +251,28 @@ vector<double> var_avgMat(Mat v)
 
     vector<double> statistic_values {mean, variance};
     return statistic_values;
+}
+
+geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Vector3 v1, geometry_msgs::Vector3 v2)
+{
+    geometry_msgs::Vector3 diff;
+
+    diff.x = abs(v1.x - v2.x);
+    diff.y = abs(v1.y - v2.y);
+    diff.z = abs(v1.z - v2.z);
+
+    return diff;
+}
+
+//Overload per geometry_msgs::Point
+
+geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Point v1, geometry_msgs::Vector3 v2)
+{
+    geometry_msgs::Vector3 diff;
+
+    diff.x = abs(v1.x - v2.x);
+    diff.y = abs(v1.y - v2.y);
+    diff.z = abs(v1.z - v2.z);
+
+    return diff;
 }

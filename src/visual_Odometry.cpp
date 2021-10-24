@@ -398,21 +398,29 @@ int main(int argc, char **argv)
 
         /*PUBLISH*/
         geometry_msgs::Vector3 estimate_rpy = mat2Euler(orientation);
-        geometry_msgs::Vector3 estimate_pos;
-        estimate_pos.x = location.at<double>(0);
-        estimate_pos.y = location.at<double>(1);
-        estimate_pos.z = location.at<double>(2);
+        geometry_msgs::Vector3 estimate_pos = mat2Vec3(location);
+
+        geometry_msgs::Twist estimate_twist;
+        estimate_twist.linear = mat2Vec3(estimate_vel);
+        estimate_twist.angular = mat2Vec3(estimate_ang);
 
         geometry_msgs::Point GTpos = ground_truth.pose.pose.position; //{ENU} -> {Camera} (istante k)
         geometry_msgs::Vector3 GTrpy = mat2Euler(Rbc*quat2Mat(ground_truth.pose.pose.orientation)); //{ENU} -> {Camera} (istante k)
+        geometry_msgs::Twist GTtwist = ground_truth.twist.twist;
 
         /*PUBLISH ERROR*/
-        geometry_msgs::Vector3 error_pos;
-        error_pos.x = abs(GTpos.x - estimate_pos.x);
-        error_pos.y = abs(GTpos.y - estimate_pos.y);
-        error_pos.z = abs(GTpos.z - estimate_pos.z);
+        visual_odometry::vo_results results;
 
-        visual_odometry::vo_results test;
+        results.estimate_pos = estimate_pos;
+        results.estimate_rpy = estimate_rpy;
+        results.estimate_twist = estimate_twist;
+
+        results.error_pos = absDiff_Vec3(GTpos, estimate_pos);
+        results.error_rpy = absDiff_Vec3(GTrpy, estimate_rpy);
+        results.error_twist.linear = absDiff_Vec3(GTtwist.linear, estimate_twist.linear);
+        results.error_twist.angular = absDiff_Vec3(GTtwist.angular, GTtwist.angular);
+
+        pub_results.publish(results);
 
         /*PUBLISH WORLD POINTS AS POINT CLOUD*/
         if(rel_pose.success)
