@@ -29,8 +29,8 @@
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-//msg for debug 
-#include "geometry_msgs/Pose2D.h"
+//custom msg
+#include "visual_odometry/vo_results.h"
 
 /*DEFINE*/
 #define FIRST_IMAGE 1
@@ -200,8 +200,9 @@ int main(int argc, char **argv)
 
     //Pub Object
     ros::Publisher pub =  node_obj.advertise<nav_msgs::Odometry>("/odom",10);
-    ros::Publisher pub_err = node_obj.advertise<geometry_msgs::Vector3>("/error_pos", 10);
     ros::Publisher pub_pcl = node_obj.advertise<sensor_msgs::PointCloud2>("/world_points", 10);
+
+    ros::Publisher pub_results = node_obj.advertise<visual_odometry::vo_results>("VO_results", 10);
 
     //Sub Objects
 	ros::Subscriber sub_imu=node_obj.subscribe("/zeno/imu", 1, imu_callback);
@@ -369,8 +370,10 @@ int main(int argc, char **argv)
         Mat estimate_vel = SF*t/deltaT.toSec();
 
         //angular velocity
-        double deltaPsi = atan2(R.at<double>(0, 0), R.at<double>(0, 1));
-        double estimate_ang = deltaPsi/deltaT.toSec();
+        double deltaPsi = atan2(R.at<double>(1, 0), R.at<double>(0, 0)); //deltaYaw = atan2(sin(yaw), cos(yaw))
+        double omega = deltaPsi/deltaT.toSec();  //True only in motion2D
+
+        Mat estimate_ang = (Mat1d(3, 1) << 0, 0, omega);
 
         /*ABSOLUTE POSE*/
         if(rel_pose.success)
@@ -393,6 +396,7 @@ int main(int argc, char **argv)
         if(motion2D)
             location.at<double>(2) = ground_truth.pose.pose.position.z; //uso il GT per la profondita'
 
+        /*PUBLISH*/
         geometry_msgs::Vector3 estimate_rpy = mat2Euler(orientation);
         geometry_msgs::Vector3 estimate_pos;
         estimate_pos.x = location.at<double>(0);
@@ -408,8 +412,7 @@ int main(int argc, char **argv)
         error_pos.y = abs(GTpos.y - estimate_pos.y);
         error_pos.z = abs(GTpos.z - estimate_pos.z);
 
-        pub_err.publish(error_pos);
-        //pub_err.publish(estimate_pos);
+        visual_odometry::vo_results test;
 
         /*PUBLISH WORLD POINTS AS POINT CLOUD*/
         if(rel_pose.success)

@@ -17,6 +17,19 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenCV 4 REQUIRED) 
 
+#Generate messages in the msg folder
+add_message_files(
+  FILES
+    vo_results.msg
+)
+
+#Generate added messages with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+    std_msgs
+    geometry_msgs
+)
+
 catkin_package()
 
 include_directories(
@@ -26,6 +39,7 @@ include_directories(
 )
 
 add_executable(visual_Odometry src/visual_Odometry.cpp)
+add_dependencies(visual_Odometry visual_odometry_generate_messages_cpp)
 target_link_libraries(visual_Odometry 
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES})

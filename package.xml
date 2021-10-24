@@ -8,6 +8,12 @@
 
   <license>TODO</license>
 
+<!-- Use build_depend for packages you need at compile time: -->
+  <build_depend>message_generation</build_depend>
+  
+<!-- Use exec_depend for packages you need at runtime: -->
+  <exec_depend>message_runtime</exec_depend>
+
 <!--Build depend-->
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>cv_bridge</build_depend>
