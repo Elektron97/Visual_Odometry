@@ -239,7 +239,7 @@ int main(int argc, char * argv[])
 # Appunti per sviluppo del codice
 
 #### Flow Chart:
-![alt text](/docs/img_relazione/vo_flowchart.png)
+![alt text](/docs/img_relazione/vo_flowchart_ns.png)
 
 #### Task List:
 - [ ] image_transport compressed.
