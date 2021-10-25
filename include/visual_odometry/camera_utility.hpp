@@ -436,8 +436,8 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
 {
     /************************************************************
      * Input:                                                   *
-     * >rotm: Matrice di rotazione {W} -> {k-1}                 *
-     * >tran: Vettore da {W} a {k-1}, espresso in coord. {W}    *
+     * >rotm: Matrice di rotazione {k-1} -> {W}                 *
+     * >tran: Versore da {W} a {k-1}, espresso in coord. {W}    *
      * >orient: Matrice di rotazione {k-1} -> {k}               *
      * >loc: Vettore da {k} a {k-1}, espresso in coord. {k}     *
      * >SF: Scale factor.                                       *
@@ -449,19 +449,16 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
      * >t_wk                                                    *
     *************************************************************/
 
-    //Matrice di rotazione {W} -> {k}
-    Mat orient_wk = orient*rotm;
-
-    //Trasl {W} -> {k} espressa in {W}
-    //[t_w,k]^W = R_k-1,w*(SF*[t_k-1,k]^k-1) + [t_w,k-1]^W
-    Mat scaled_locW = coordTransf(-SF*orient.t()*loc, rotm.t(), tran);
+   //Rotation Matrix from {k} to {W}
+    Mat orient_wk = rotm*orient.t(); //{W} <- {k-1} <- {k}
+    Mat scaled_locW = coordTransf(-SF*orient.t()*loc, rotm, tran);
 
     /*****************NOTA SULLA TRASFORMAZIONE {k} -> {W}*****************************
      * La matrice di trasf. omogenea {k} -> {W}                                       *
-     * e' composta dalla matrice R_kw e del vettore                                   *
+     * e' composta dalla matrice R_wk e del vettore                                   *
      * t_wk.                                                                          *
      * Dunque la matrice Omogenea associata sara' del tipo:                           *
-     *      [orient_wk.t()          scaled_locW]                                      *
+     *      [orient_wk.             scaled_locW]                                      *
      * T =  |                                  |                                      *
      *      [0                                1]                                      *
      **********************************************************************************/
@@ -471,7 +468,7 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
 
     for(int i = 0; i < world_points.cols; i++)
     {
-        world_pointsW.col(i) = coordTransf(SF*world_points.col(i), orient_wk.t(), scaled_locW);
+        world_pointsW.col(i) = coordTransf(SF*world_points.col(i), orient_wk, scaled_locW);
     }
 
     vector<Mat> absPose = {scaled_locW, orient_wk, world_pointsW};
@@ -484,30 +481,29 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF)
 {
     /************************************************************
      * Input:                                                   *
-     * >rotm: Matrice di rotazione {W} -> {k-1}                 *
-     * >tran: Vettore da {W} a {k-1}, espresso in coord. {W}    *
+     * >rotm: Matrice di rotazione {k-1} -> {W}                 *
+     * >tran: Versore da {W} a {k-1}, espresso in coord. {W}    *
      * >orient: Matrice di rotazione {k-1} -> {k}               *
      * >loc: Vettore da {k} a {k-1}, espresso in coord. {k}     *
      * >SF: Scale factor.                                       *
+     * >world_points: Punti nello spazio {k}.                   *
      *                                                          *
      * Output:                                                  *
+     * >world_pointsW: Punti nello spazio {W}                   *
      * >R_wk                                                    *
      * >t_wk                                                    *
-     ************************************************************/
+    *************************************************************/
 
-    //Matrice di rotazione {W} -> {k}
-    Mat orient_wk = orient*rotm;
-
-    //Trasl {W} -> {k} espressa in {W}
-    //[t_w,k]^W = R_k-1,w*(SF*[t_k-1,k]^k-1) + [t_w,k-1]^W
-    Mat scaled_locW = coordTransf(-SF*orient.t()*loc, rotm.t(), tran);
+   //Rotation Matrix from {k} to {W}
+    Mat orient_wk = rotm*orient.t(); //{W} <- {k-1} <- {k}
+    Mat scaled_locW = coordTransf(-SF*orient.t()*loc, rotm, tran);
 
     /*****************NOTA SULLA TRASFORMAZIONE {k} -> {W}*****************************
      * La matrice di trasf. omogenea {k} -> {W}                                       *
-     * e' composta dalla matrice R_kw e del vettore                                   *
+     * e' composta dalla matrice R_wk e del vettore                                   *
      * t_wk.                                                                          *
      * Dunque la matrice Omogenea associata sara' del tipo:                           *
-     *      [orient_wk.t()          scaled_locW]                                      *
+     *      [orient_wk.             scaled_locW]                                      *
      * T =  |                                  |                                      *
      *      [0                                1]                                      *
      **********************************************************************************/

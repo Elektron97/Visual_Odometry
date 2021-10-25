@@ -45,7 +45,6 @@ geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Vector3 v1, geometry_msgs::Ve
 geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Point v1, geometry_msgs::Vector3 v2);
 
 /*********Source**********/
-//TO DO -> Metterli in un .cpp?
 
 Mat ros2cv(sensor_msgs::CompressedImage image)
 {

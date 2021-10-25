@@ -234,7 +234,7 @@ int main(int argc, char **argv)
 
     /*INITIALIZATION*/
     //ENU matrix rotation
-    Rbc = (Mat1d(3, 3) << 0, 0, 1, -1, 0, 0, 0, -1, 0); //{Body} -> {Camera}
+    Rbc = (Mat1d(3, 3) << 0, 0, 1, -1, 0, 0, 0, -1, 0); //{Camera} -> {Body}
 
     //Intrinsic Parameters
     Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
@@ -246,16 +246,16 @@ int main(int argc, char **argv)
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
     //convert quaternion in Rotational Matrix
-    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //{ENU} -> {Body} (all'istante k-1)
-    Mat orientation = Rbc*orientation_body; //{ENU} -> {Camera} (all'istante k-1)
-    Mat location = pos2Mat(ground_truth.pose.pose.position); //trasl {ENU} -> {Body} (Camera)
+    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //{Body_k-1} -> {Camera_k-1}
+    Mat orientation = orientation_body*Rbc; //{Camera_k-1} -> {ENU} 
+    Mat location = pos2Mat(ground_truth.pose.pose.position); //trasl {ENU} -> {Body} in frame {ENU}
  
     //boolean variables for fail detection
     bool fail_detection = false; //Quando il n° di features e' minore della tolleranza
 
     //Relative Orientation and Location
-    Mat R = Mat::eye(3, 3, CV_64F);
-    Mat t = Mat::zeros(3, 1, CV_64F);
+    Mat R = Mat::eye(3, 3, CV_64F); //{k-1} -> {k}
+    Mat t = Mat::zeros(3, 1, CV_64F); //{k} -> {k-1} in frame {k}. ||t|| = 1
 
     //Scale Factor
     double SF = 1.0; //default value
@@ -355,11 +355,11 @@ int main(int argc, char **argv)
             if(!world_points.empty())
                 SF = scaleFactor(distance, world_points);   //Update Scale Factor
 
-            //else -> SF_k == Sf_k-1
+            //else -> SF_k == SF_k-1
         }
 
-        else
-            SF = 1.0;
+        //else
+            //SF_k == SF_k-1;
 
         /*VELOCITY ESTIMATION*/
         //deltaT
@@ -382,7 +382,7 @@ int main(int argc, char **argv)
         
             world_pointsW = absPose[2]; //[wp]^W
             location = absPose[0];      //[t_w,k]^W
-            orientation = absPose[1];   //R_wk ({W} -> {k})
+            orientation = absPose[1];   //R_wk ({k} -> {W})
         }
 
         else
@@ -390,14 +390,14 @@ int main(int argc, char **argv)
             vector<Mat> absPose = absolutePose(orientation, location, R, t, SF);
 
             location = absPose[0];      //[t_w,k]^W
-            orientation = absPose[1];   //R_wk ({W} -> {k})
+            orientation = absPose[1];   //R_wk ({k} -> {W})
         }
 
         if(motion2D)
             location.at<double>(2) = ground_truth.pose.pose.position.z; //uso il GT per la profondita'
 
         /*PUBLISH*/
-        geometry_msgs::Vector3 estimate_rpy = mat2Euler(Rbc.t()*orientation); //{W} -> {B} (istante k)
+        geometry_msgs::Vector3 estimate_rpy = mat2Euler(orientation*Rbc.t()); //{b} -> {W} (istante k)
         geometry_msgs::Vector3 estimate_pos = mat2Vec3(location);
 
         geometry_msgs::Twist estimate_twist;
@@ -405,7 +405,7 @@ int main(int argc, char **argv)
         estimate_twist.angular = mat2Vec3(estimate_ang);
 
         geometry_msgs::Point GTpos = ground_truth.pose.pose.position; //{ENU} -> {Body} (istante k)
-        geometry_msgs::Vector3 GTrpy = quat2Euler(ground_truth.pose.pose.orientation); //{ENU} -> {Body} (istante k)
+        geometry_msgs::Vector3 GTrpy = quat2Euler(ground_truth.pose.pose.orientation); //{Body} -> {ENU} (istante k)
         geometry_msgs::Twist GTtwist = ground_truth.twist.twist;
 
         /*PUBLISH ERROR*/
