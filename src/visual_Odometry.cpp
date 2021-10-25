@@ -295,7 +295,7 @@ int main(int argc, char **argv)
 
         if(!checkIfMoving(kP_converted))
         {
-            //ROS_WARN("Robot is not moving! Skip Iteration!");
+            ROS_WARN("Robot is not moving! Skip Iteration!");
             continue;
         } 
 
@@ -397,15 +397,15 @@ int main(int argc, char **argv)
             location.at<double>(2) = ground_truth.pose.pose.position.z; //uso il GT per la profondita'
 
         /*PUBLISH*/
-        geometry_msgs::Vector3 estimate_rpy = mat2Euler(orientation);
+        geometry_msgs::Vector3 estimate_rpy = mat2Euler(Rbc.t()*orientation); //{W} -> {B} (istante k)
         geometry_msgs::Vector3 estimate_pos = mat2Vec3(location);
 
         geometry_msgs::Twist estimate_twist;
         estimate_twist.linear = mat2Vec3(estimate_vel);
         estimate_twist.angular = mat2Vec3(estimate_ang);
 
-        geometry_msgs::Point GTpos = ground_truth.pose.pose.position; //{ENU} -> {Camera} (istante k)
-        geometry_msgs::Vector3 GTrpy = mat2Euler(Rbc*quat2Mat(ground_truth.pose.pose.orientation)); //{ENU} -> {Camera} (istante k)
+        geometry_msgs::Point GTpos = ground_truth.pose.pose.position; //{ENU} -> {Body} (istante k)
+        geometry_msgs::Vector3 GTrpy = quat2Euler(ground_truth.pose.pose.orientation); //{ENU} -> {Body} (istante k)
         geometry_msgs::Twist GTtwist = ground_truth.twist.twist;
 
         /*PUBLISH ERROR*/
@@ -447,7 +447,7 @@ int main(int argc, char **argv)
         }
 
         /*SHOW RESULTS*/
-        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+        //print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
 
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 
