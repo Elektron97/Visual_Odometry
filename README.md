@@ -246,6 +246,3 @@ int main(int argc, char * argv[])
 - [ ] Provare cv_bridge con opencv_contrib 3.2.0.
 - [ ] Scrivere la relazione.
 - [ ] World Points su Rviz con riferimenti corretti. 
-
-
-https://forum.opencv.org/t/easy-way-to-compare-quality-of-keypoints/4939/3
