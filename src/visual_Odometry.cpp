@@ -41,7 +41,7 @@ using namespace std;
 using namespace cv;
 using namespace cv::xfeatures2d;
 
-Mat Rbc; //Matrice {Body} -> {Camera}
+Mat Rbc; //Matrice {Camera} -> {Body}
 
 //Settings
 bool motion2D = true;   //Planar motion: [x y yaw]
@@ -266,7 +266,7 @@ int main(int argc, char **argv)
     /*ITERATIONS*/
     while(ros::ok())
     {
-        ros::spinOnce();
+        ros::spinOnce();    //Read Sensor Data
         loop_rate.sleep();
 
         /*SHOW IMAGE FROM BAG FILE*/
@@ -447,7 +447,7 @@ int main(int argc, char **argv)
         }
 
         /*SHOW RESULTS*/
-        //print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
 
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 
