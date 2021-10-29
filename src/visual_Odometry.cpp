@@ -44,7 +44,7 @@ using namespace cv::xfeatures2d;
 Mat Rbc; //Matrice {Camera} -> {Body}
 
 //Settings
-bool motion2D = true;   //Planar motion: [x y yaw]
+bool motion2D = true;   //If true -> Planar motion: [x y yaw]
 
 /*GLOBAL VARIABLES*/
 sensor_msgs::Imu imu;   
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
     //convert quaternion in Rotational Matrix
-    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //{Body_k-1} -> {Camera_k-1}
+    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //{Body_k-1} -> {ENU}
     Mat orientation = orientation_body*Rbc; //{Camera_k-1} -> {ENU} 
     Mat location = pos2Mat(ground_truth.pose.pose.position); //trasl {ENU} -> {Body} in frame {ENU}
  
@@ -367,13 +367,15 @@ int main(int argc, char **argv)
         ros::Duration deltaT = curr_time - prev_time;
 
         //linear velocity
-        Mat estimate_vel = SF*t/deltaT.toSec();
+        Mat estimate_vel = Rbc*(-SF*R.t()*t/deltaT.toSec()); //La velocita' e' {k-1} -> {k} in coordinate {B}
 
-        //angular velocity
-        double deltaPsi = atan2(R.at<double>(1, 0), R.at<double>(0, 0)); //deltaYaw = atan2(sin(yaw), cos(yaw))
-        double omega = deltaPsi/deltaT.toSec();  //True only in motion2D
-
-        Mat estimate_ang = (Mat1d(3, 1) << 0, 0, omega);
+        if(motion2D)
+        {
+            //angular velocity
+            double deltaPsi = atan2(R.at<double>(1, 0), R.at<double>(0, 0)); //deltaYaw = atan2(sin(yaw), cos(yaw))
+            double omega = deltaPsi/deltaT.toSec();  //True only in motion2D
+            Mat estimate_ang = (Mat1d(3, 1) << 0, 0, omega);
+        }
 
         /*ABSOLUTE POSE*/
         if(rel_pose.success)
@@ -395,14 +397,14 @@ int main(int argc, char **argv)
 
         if(motion2D)
             location.at<double>(2) = ground_truth.pose.pose.position.z; //uso il GT per la profondita'
-
+        
         /*PUBLISH*/
         geometry_msgs::Vector3 estimate_rpy = mat2Euler(orientation*Rbc.t()); //{b} -> {W} (istante k)
         geometry_msgs::Vector3 estimate_pos = mat2Vec3(location);
 
         geometry_msgs::Twist estimate_twist;
         estimate_twist.linear = mat2Vec3(estimate_vel);
-        estimate_twist.angular = mat2Vec3(estimate_ang);
+        estimate_twist.angular = computeAngularVel(estimate_rpy, R, deltaT.toSec());
 
         geometry_msgs::Point GTpos = ground_truth.pose.pose.position; //{ENU} -> {Body} (istante k)
         geometry_msgs::Vector3 GTrpy = quat2Euler(ground_truth.pose.pose.orientation); //{Body} -> {ENU} (istante k)
@@ -418,7 +420,7 @@ int main(int argc, char **argv)
         results.error_pos = absDiff_Vec3(GTpos, estimate_pos);
         results.error_rpy = absDiff_Vec3(GTrpy, estimate_rpy);
         results.error_twist.linear = absDiff_Vec3(GTtwist.linear, estimate_twist.linear);
-        results.error_twist.angular = absDiff_Vec3(GTtwist.angular, GTtwist.angular);
+        results.error_twist.angular = absDiff_Vec3(GTtwist.angular, estimate_twist.angular);
 
         pub_results.publish(results);
 

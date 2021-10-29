@@ -246,3 +246,7 @@ int main(int argc, char * argv[])
 - [ ] Provare cv_bridge con opencv_contrib 3.2.0.
 - [ ] Scrivere la relazione.
 - [ ] World Points su Rviz con riferimenti corretti. 
+- [ ] Cheirality Check per Homography.
+- [ ] Rimuovere Ipotesi Motion2D.
+- [ ] Plottare risultati su Matlab.
+- [ ] Quando il robot non si muove, deve continuare a pubblicare. (Se a Matlab da noia)

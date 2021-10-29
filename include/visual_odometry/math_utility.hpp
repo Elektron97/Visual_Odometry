@@ -44,6 +44,8 @@ vector<double> var_avgMat(Mat v);
 geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Vector3 v1, geometry_msgs::Vector3 v2);
 geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Point v1, geometry_msgs::Vector3 v2);
 
+geometry_msgs::Vector3 computeAngularVel(geometry_msgs::Vector3 rpy, Mat R, double deltaT);
+
 /*********Source**********/
 
 Mat ros2cv(sensor_msgs::CompressedImage image)
@@ -274,4 +276,22 @@ geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Point v1, geometry_msgs::Vect
     diff.z = abs(v1.z - v2.z);
 
     return diff;
+}
+
+geometry_msgs::Vector3 computeAngularVel(geometry_msgs::Vector3 rpy, Mat R, double deltaT)
+{
+    //deltaRPY
+    geometry_msgs::Vector3 rpy_dot = mat2Euler(R);
+    //rpy_dot
+    rpy_dot.x /= deltaT;
+    rpy_dot.y /= deltaT;
+    rpy_dot.z /= deltaT;
+
+    //Angular Velocity
+    geometry_msgs::Vector3 w;
+    w.x = rpy_dot.x - sin(rpy.y)*rpy_dot.z;
+    w.y = cos(rpy.x)*rpy_dot.y + cos(rpy.y)*sin(rpy.x)*rpy_dot.z;
+    w.z = -sin(rpy.y)*rpy_dot.y + cos(rpy.y)*cos(rpy.x)*rpy_dot.z;
+
+    return w;
 }
