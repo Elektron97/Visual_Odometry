@@ -41,21 +41,28 @@ using namespace std;
 using namespace cv;
 using namespace cv::xfeatures2d;
 
-Mat Rbc; //Matrice {Camera} -> {Body}
+/*ENUM*/
+enum fail_V0 {FAIL_DETECTION, NOT_MOVING, FAIL_RECOVER, SUCCESS};
 
 //Settings
 bool motion2D = true;   //If true -> Planar motion: [x y yaw]
 
 /*GLOBAL VARIABLES*/
+
+Mat Rbc; //Rot. Matrix from {C} -> {B}
+
+//Sensor
 sensor_msgs::Imu imu;   
 sensor_msgs::LaserScan laser;
 sensor_msgs::CompressedImage camera_sx;
 sensor_msgs::CompressedImage camera_dx;
 
+//Ground Truth
 nav_msgs::Odometry ground_truth;
 
 //function declaration
 void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy, geometry_msgs::Point GTpos, geometry_msgs::Vector3 GTrpy);
+visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT, int fail_succ);
 
 /*CALLBACK*/
 void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -263,6 +270,11 @@ int main(int argc, char **argv)
     //World Points in {W} coordinates
     Mat world_pointsW;
 
+    //deltaT for twist
+    ros::Duration deltaT;
+
+    int fail_msg;
+
     /*ITERATIONS*/
     while(ros::ok())
     {
@@ -290,17 +302,31 @@ int main(int argc, char **argv)
         if(fail_detection)
         {
             ROS_ERROR("Num. Features sotto il minimo. Skip Iteration!");
+
+            ros::Time curr_time = camera_sx.header.stamp;
+            //ros::Time curr_time = ground_truth.header.stamp;
+            deltaT = curr_time - prev_time;
+
+            //Publishing results{k} = results{k-1}
+            pub_results.publish(publish_VOResults(orientation, location, R, t, SF, deltaT, FAIL_DETECTION));
             continue;
         }      
 
         if(!checkIfMoving(kP_converted))
         {
             ROS_WARN("Robot is not moving! Skip Iteration!");
+
+            ros::Time curr_time = camera_sx.header.stamp;
+            //ros::Time curr_time = ground_truth.header.stamp;
+            deltaT = curr_time - prev_time;
+
+            //Publishing results{k} = results{k-1}
+            pub_results.publish(publish_VOResults(orientation, location, R, t, SF, deltaT, NOT_MOVING));
             continue;
         } 
 
         else
-            ROS_INFO("Robot is moving! Estimating pose..."); 
+            ROS_INFO("Robot is moving! Estimating pose...");
 
 
         RelativePose rel_pose = estimateRelativePose(kP_converted, cameraMatrix);
@@ -313,6 +339,7 @@ int main(int argc, char **argv)
         {
             R = rel_pose.R;
             t = rel_pose.t;
+            fail_msg = SUCCESS;
         }
 
         else
@@ -320,6 +347,7 @@ int main(int argc, char **argv)
             ROS_ERROR("FAILED RECOVERING POSE");
             //R_k-1 == R_k
             //t_k-1 == t_k
+            fail_msg = FAIL_RECOVER;
         }
 
         /******NOTA SULLA TRASF. OMOGENEA********
@@ -361,22 +389,6 @@ int main(int argc, char **argv)
         //else
             //SF_k == SF_k-1;
 
-        /*VELOCITY ESTIMATION*/
-        //deltaT
-        ros::Time curr_time = camera_sx.header.stamp;
-        ros::Duration deltaT = curr_time - prev_time;
-
-        //linear velocity
-        Mat estimate_vel = Rbc*(-SF*R.t()*t/deltaT.toSec()); //La velocita' e' {k-1} -> {k} in coordinate {B}
-
-        if(motion2D)
-        {
-            //angular velocity
-            double deltaPsi = atan2(R.at<double>(1, 0), R.at<double>(0, 0)); //deltaYaw = atan2(sin(yaw), cos(yaw))
-            double omega = deltaPsi/deltaT.toSec();  //True only in motion2D
-            Mat estimate_ang = (Mat1d(3, 1) << 0, 0, omega);
-        }
-
         /*ABSOLUTE POSE*/
         if(rel_pose.success)
         {
@@ -397,31 +409,14 @@ int main(int argc, char **argv)
 
         if(motion2D)
             location.at<double>(2) = ground_truth.pose.pose.position.z; //uso il GT per la profondita'
-        
-        /*PUBLISH*/
-        geometry_msgs::Vector3 estimate_rpy = mat2Euler(orientation*Rbc.t()); //{b} -> {W} (istante k)
-        geometry_msgs::Vector3 estimate_pos = mat2Vec3(location);
 
-        geometry_msgs::Twist estimate_twist;
-        estimate_twist.linear = mat2Vec3(estimate_vel);
-        estimate_twist.angular = computeAngularVel(estimate_rpy, R, deltaT.toSec());
+        /*VELOCITY ESTIMATION*/
+        //deltaT
+        ros::Time curr_time = camera_sx.header.stamp;
+        //ros::Time curr_time = ground_truth.header.stamp;
+        deltaT = curr_time - prev_time;
 
-        geometry_msgs::Point GTpos = ground_truth.pose.pose.position; //{ENU} -> {Body} (istante k)
-        geometry_msgs::Vector3 GTrpy = quat2Euler(ground_truth.pose.pose.orientation); //{Body} -> {ENU} (istante k)
-        geometry_msgs::Twist GTtwist = ground_truth.twist.twist;
-
-        /*PUBLISH ERROR*/
-        visual_odometry::vo_results results;
-
-        results.estimate_pos = estimate_pos;
-        results.estimate_rpy = estimate_rpy;
-        results.estimate_twist = estimate_twist;
-
-        results.error_pos = absDiff_Vec3(GTpos, estimate_pos);
-        results.error_rpy = absDiff_Vec3(GTrpy, estimate_rpy);
-        results.error_twist.linear = absDiff_Vec3(GTtwist.linear, estimate_twist.linear);
-        results.error_twist.angular = absDiff_Vec3(GTtwist.angular, estimate_twist.angular);
-
+        visual_odometry::vo_results results = publish_VOResults(orientation, location, R, t, SF, deltaT, fail_msg);
         pub_results.publish(results);
 
         /*PUBLISH WORLD POINTS AS POINT CLOUD*/
@@ -449,7 +444,7 @@ int main(int argc, char **argv)
         }
 
         /*SHOW RESULTS*/
-        print_VOresult(estimate_pos, estimate_rpy, GTpos, GTrpy);
+        //print_VOresult(results.estimate_pos, results.estimate_rpy, GTpos, GTrpy);
 
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 
@@ -458,6 +453,76 @@ int main(int argc, char **argv)
     ROS_WARN("Video Finito!");
 
     return 0;
+}
+
+visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT, int fail_succ)
+{
+    /**********PUBLISH VO RESULTS************
+     * orientation/location: Absolute Pose  *
+     * R/t: Relative Pose                   *
+     * SF: Scale Factor                     *
+     * deltaT: diff. of time for twist      *
+     ****************************************/
+
+    //Using 2 Global Variables
+    //>Rbc: Rot. Matrix from {C} to {B}
+    //>motion2D: true: planar motion | false: 3D motion
+    //>ground_truth: ground truth data
+
+    visual_odometry::vo_results results;
+
+    //Estimate Pose and Twist
+    geometry_msgs::Vector3 estimate_rpy = mat2Euler(orientation*Rbc.t()); //{b} -> {W} (istante k)
+    geometry_msgs::Vector3 estimate_pos = mat2Vec3(location);
+
+    geometry_msgs::Twist estimate_twist = estimateTwist(deltaT, R, t, SF, estimate_rpy, Rbc, motion2D);
+
+    geometry_msgs::Point GTpos = ground_truth.pose.pose.position; //{ENU} -> {Body} (istante k)
+    geometry_msgs::Vector3 GTrpy = quat2Euler(ground_truth.pose.pose.orientation); //{Body} -> {ENU} (istante k)
+    geometry_msgs::Twist GTtwist = ground_truth.twist.twist;
+
+    results.estimate_pos = estimate_pos;
+    results.estimate_rpy = estimate_rpy;
+    results.estimate_twist = estimate_twist;
+
+    results.error_pos = absDiff_Vec3(GTpos, estimate_pos);
+    results.error_rpy = absDiff_Vec3(GTrpy, estimate_rpy);
+    results.error_twist.linear = absDiff_Vec3(GTtwist.linear, estimate_twist.linear);
+    results.error_twist.angular = absDiff_Vec3(GTtwist.angular, estimate_twist.angular);
+    
+    switch(fail_succ)
+    {
+        case FAIL_DETECTION:
+            results.fail_detect = true;
+            results.not_moving = false;
+            results.fail_pose = false;
+            results.success = false;
+        break;
+
+        case NOT_MOVING:
+            results.fail_detect = false;
+            results.not_moving = true;
+            results.fail_pose = false;
+            results.success = false;
+        break;
+
+        case FAIL_RECOVER:
+            results.fail_detect = false;
+            results.not_moving = false;
+            results.fail_pose = true;
+            results.success = false;
+        break;
+
+        case SUCCESS:
+            results.fail_detect = false;
+            results.not_moving = false;
+            results.fail_pose = false;
+            results.success = true;
+        break;
+
+    }
+
+    return results;
 }
 
 void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy, geometry_msgs::Point GTpos, geometry_msgs::Vector3 GTrpy)

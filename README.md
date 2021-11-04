@@ -247,6 +247,6 @@ int main(int argc, char * argv[])
 - [ ] Scrivere la relazione.
 - [ ] World Points su Rviz con riferimenti corretti. 
 - [ ] Cheirality Check per Homography.
-- [ ] Rimuovere Ipotesi Motion2D.
+- [x] Rimuovere Ipotesi Motion2D.
 - [ ] Plottare risultati su Matlab.
-- [ ] Quando il robot non si muove, deve continuare a pubblicare. (Se a Matlab da noia)
+- [x] Quando il robot non si muove, deve continuare a pubblicare. (Se a Matlab da noia)

@@ -46,6 +46,8 @@ geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Point v1, geometry_msgs::Vect
 
 geometry_msgs::Vector3 computeAngularVel(geometry_msgs::Vector3 rpy, Mat R, double deltaT);
 
+geometry_msgs::Twist estimateTwist(ros::Duration deltaT, Mat R, Mat t, double SF, geometry_msgs::Vector3 estimate_rpy, Mat Rbc, bool motion2D);
+
 /*********Source**********/
 
 Mat ros2cv(sensor_msgs::CompressedImage image)
@@ -294,4 +296,32 @@ geometry_msgs::Vector3 computeAngularVel(geometry_msgs::Vector3 rpy, Mat R, doub
     w.z = -sin(rpy.y)*rpy_dot.y + cos(rpy.y)*cos(rpy.x)*rpy_dot.z;
 
     return w;
+}
+
+geometry_msgs::Twist estimateTwist(ros::Duration deltaT, Mat R, Mat t, double SF, geometry_msgs::Vector3 estimate_rpy, Mat Rbc, bool motion2D)
+{
+    geometry_msgs::Twist estimate_twist;
+
+    //linear velocity
+    Mat estimate_vel = Rbc*(-SF*R.t()*t/deltaT.toSec()); //La velocita' e' {k-1} -> {k} in coordinate {B}
+    estimate_twist.linear = mat2Vec3(estimate_vel);
+
+    //Planar Motion
+    if(motion2D)
+    {
+        //angular velocity
+        double deltaPsi = atan2(R.at<double>(1, 0), R.at<double>(0, 0)); //deltaYaw = atan2(sin(yaw), cos(yaw))
+        double omega = deltaPsi/deltaT.toSec();  //True only in motion2D
+        Mat estimate_ang = (Mat1d(3, 1) << 0, 0, omega);
+
+        estimate_twist.angular = mat2Vec3(estimate_ang);
+    }
+
+    else
+    {
+        //MOTION 3D
+        estimate_twist.angular = computeAngularVel(estimate_rpy, R, deltaT.toSec());
+    }
+
+    return estimate_twist;
 }
