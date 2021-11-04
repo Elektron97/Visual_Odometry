@@ -21,7 +21,6 @@
 
 /*ROS MSGS*/
 #include "nav_msgs/Odometry.h"
-#include "sensor_msgs/Imu.h"
 #include "sensor_msgs/LaserScan.h"
 #include "sensor_msgs/CompressedImage.h"
 #include "sensor_msgs/PointCloud2.h"
@@ -31,6 +30,7 @@
 
 //custom msg
 #include "visual_odometry/vo_results.h"
+#include "visual_odometry/fail_check.h"
 
 /*DEFINE*/
 #define FIRST_IMAGE 1
@@ -45,59 +45,25 @@ using namespace cv::xfeatures2d;
 enum fail_V0 {FAIL_DETECTION, NOT_MOVING, FAIL_RECOVER, SUCCESS};
 
 //Settings
-bool motion2D = true;   //If true -> Planar motion: [x y yaw]
+bool motion2D = false;   //If true -> Planar motion: [x y yaw]
 
 /*GLOBAL VARIABLES*/
 
 Mat Rbc; //Rot. Matrix from {C} -> {B}
 
-//Sensor
-sensor_msgs::Imu imu;   
+//Sensor  
 sensor_msgs::LaserScan laser;
 sensor_msgs::CompressedImage camera_sx;
-sensor_msgs::CompressedImage camera_dx;
 
 //Ground Truth
 nav_msgs::Odometry ground_truth;
 
 //function declaration
 void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy, geometry_msgs::Point GTpos, geometry_msgs::Vector3 GTrpy);
-visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT, int fail_succ);
+visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT);
+visual_odometry::fail_check publish_FailCheck(int fail_succ);
 
 /*CALLBACK*/
-void imu_callback(const sensor_msgs::Imu::ConstPtr& msg)
-{
-    /************************************************  
-    *    std_msgs/Header header                     *
-    *       uint32 seq                              *
-    *       time stamp                              *
-    *       string frame_id                         *
-    *    geometry_msgs/Quaternion orientation       *
-    *       float64 x                               *
-    *       float64 y                               *
-    *       float64 z                               *
-    *       float64 w                               *
-    *    float64[9] orientation_covariance          *
-    *    geometry_msgs/Vector3 angular_velocity     *
-    *      float64 x                                *
-    *      float64 y                                *
-    *      float64 z                                *
-    *    float64[9] angular_velocity_covariance     *
-    *    geometry_msgs/Vector3 linear_acceleration  *
-    *      float64 x                                *
-    *      float64 y                                *
-    *      float64 z                                *
-    *    float64[9] linear_acceleration_covariance  *
-    *************************************************/
-
-    imu.header = msg->header;
-    imu.orientation = msg->orientation;
-    imu.orientation_covariance = msg->orientation_covariance;
-    imu.angular_velocity = msg ->angular_velocity;
-    imu.angular_velocity_covariance = msg->angular_velocity_covariance;
-    imu.linear_acceleration = msg->linear_acceleration;
-    imu.linear_acceleration_covariance = msg->linear_acceleration_covariance;
-}
 
 void laser_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
@@ -143,22 +109,6 @@ void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
     camera_sx.header = msg->header;
     camera_sx.format = msg->format;
     camera_sx.data = msg->data;
-}
-
-void cameraDX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
-{   
-    /************************
-    *std_msgs/Header header *
-    *    uint32 seq         *
-    *    time stamp         *
-    *    string frame_id    *
-    *string format          *
-    *uint8[] data           *
-    *************************/
-
-    camera_dx.header = msg->header;
-    camera_dx.format = msg->format;
-    camera_dx.data = msg->data;
 }
 
 void groundTruth_callback(const nav_msgs::Odometry::ConstPtr& msg)
@@ -210,9 +160,9 @@ int main(int argc, char **argv)
     ros::Publisher pub_pcl = node_obj.advertise<sensor_msgs::PointCloud2>("/world_points", 10);
 
     ros::Publisher pub_results = node_obj.advertise<visual_odometry::vo_results>("VO_results", 10);
+    ros::Publisher pub_fail = node_obj.advertise<visual_odometry::fail_check>("VO_fail_check", 10);
 
     //Sub Objects
-	ros::Subscriber sub_imu=node_obj.subscribe("/zeno/imu", 1, imu_callback);
 	ros::Subscriber sub_laser=node_obj.subscribe("/zeno/laser", 1, laser_callback);
 
     /*ros::Subscriber risulta meno efficente di image_transport.*/
@@ -223,8 +173,6 @@ int main(int argc, char **argv)
     //image_transport::Subscriber sub_cameraDX = it.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);
     
 	ros::Subscriber sub_cameraSX=node_obj.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
-    ros::Subscriber sub_cameraDX=node_obj.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);
-
 	ros::Subscriber sub_GT=node_obj.subscribe("/zeno/pose_gt", 1, groundTruth_callback);
 
 	ros::Rate loop_rate(FREQUENCY);	//10 Hz Prediction step
@@ -273,7 +221,7 @@ int main(int argc, char **argv)
     //deltaT for twist
     ros::Duration deltaT;
 
-    int fail_msg;
+    int fail_succ;
 
     /*ITERATIONS*/
     while(ros::ok())
@@ -302,26 +250,16 @@ int main(int argc, char **argv)
         if(fail_detection)
         {
             ROS_ERROR("Num. Features sotto il minimo. Skip Iteration!");
-
-            ros::Time curr_time = camera_sx.header.stamp;
-            //ros::Time curr_time = ground_truth.header.stamp;
-            deltaT = curr_time - prev_time;
-
-            //Publishing results{k} = results{k-1}
-            pub_results.publish(publish_VOResults(orientation, location, R, t, SF, deltaT, FAIL_DETECTION));
+            visual_odometry::fail_check fail_msg = publish_FailCheck(FAIL_DETECTION);
+            pub_fail.publish(fail_msg);
             continue;
         }      
 
         if(!checkIfMoving(kP_converted))
         {
             ROS_WARN("Robot is not moving! Skip Iteration!");
-
-            ros::Time curr_time = camera_sx.header.stamp;
-            //ros::Time curr_time = ground_truth.header.stamp;
-            deltaT = curr_time - prev_time;
-
-            //Publishing results{k} = results{k-1}
-            pub_results.publish(publish_VOResults(orientation, location, R, t, SF, deltaT, NOT_MOVING));
+            visual_odometry::fail_check fail_msg = publish_FailCheck(NOT_MOVING);
+            pub_fail.publish(fail_msg);
             continue;
         } 
 
@@ -339,7 +277,7 @@ int main(int argc, char **argv)
         {
             R = rel_pose.R;
             t = rel_pose.t;
-            fail_msg = SUCCESS;
+            fail_succ = SUCCESS;
         }
 
         else
@@ -347,7 +285,7 @@ int main(int argc, char **argv)
             ROS_ERROR("FAILED RECOVERING POSE");
             //R_k-1 == R_k
             //t_k-1 == t_k
-            fail_msg = FAIL_RECOVER;
+            fail_succ = FAIL_RECOVER;
         }
 
         /******NOTA SULLA TRASF. OMOGENEA********
@@ -413,11 +351,13 @@ int main(int argc, char **argv)
         /*VELOCITY ESTIMATION*/
         //deltaT
         ros::Time curr_time = camera_sx.header.stamp;
-        //ros::Time curr_time = ground_truth.header.stamp;
         deltaT = curr_time - prev_time;
 
-        visual_odometry::vo_results results = publish_VOResults(orientation, location, R, t, SF, deltaT, fail_msg);
+        visual_odometry::vo_results results = publish_VOResults(orientation, location, R, t, SF, deltaT);
         pub_results.publish(results);
+
+        //Pub Fail Check
+        pub_fail.publish(publish_FailCheck(fail_succ));
 
         /*PUBLISH WORLD POINTS AS POINT CLOUD*/
         if(rel_pose.success)
@@ -455,7 +395,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT, int fail_succ)
+visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT)
 {
     /**********PUBLISH VO RESULTS************
      * orientation/location: Absolute Pose  *
@@ -489,40 +429,46 @@ visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat
     results.error_rpy = absDiff_Vec3(GTrpy, estimate_rpy);
     results.error_twist.linear = absDiff_Vec3(GTtwist.linear, estimate_twist.linear);
     results.error_twist.angular = absDiff_Vec3(GTtwist.angular, estimate_twist.angular);
-    
+
+    return results;
+}
+
+visual_odometry::fail_check publish_FailCheck(int fail_succ)
+{
+    visual_odometry::fail_check fail_msg;
+
     switch(fail_succ)
     {
         case FAIL_DETECTION:
-            results.fail_detect = true;
-            results.not_moving = false;
-            results.fail_pose = false;
-            results.success = false;
+            fail_msg.fail_detect = true;
+            fail_msg.not_moving = false;
+            fail_msg.fail_pose = false;
+            fail_msg.success = false;
         break;
 
         case NOT_MOVING:
-            results.fail_detect = false;
-            results.not_moving = true;
-            results.fail_pose = false;
-            results.success = false;
+            fail_msg.fail_detect = false;
+            fail_msg.not_moving = true;
+            fail_msg.fail_pose = false;
+            fail_msg.success = false;
         break;
 
         case FAIL_RECOVER:
-            results.fail_detect = false;
-            results.not_moving = false;
-            results.fail_pose = true;
-            results.success = false;
+            fail_msg.fail_detect = false;
+            fail_msg.not_moving = false;
+            fail_msg.fail_pose = true;
+            fail_msg.success = false;
         break;
 
         case SUCCESS:
-            results.fail_detect = false;
-            results.not_moving = false;
-            results.fail_pose = false;
-            results.success = true;
+            fail_msg.fail_detect = false;
+            fail_msg.not_moving = false;
+            fail_msg.fail_pose = false;
+            fail_msg.success = true;
         break;
-
     }
 
-    return results;
+    return fail_msg;
 }
 
 void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy, geometry_msgs::Point GTpos, geometry_msgs::Vector3 GTrpy)

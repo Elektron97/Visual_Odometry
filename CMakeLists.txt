@@ -21,6 +21,7 @@ find_package(OpenCV 4 REQUIRED)
 add_message_files(
   FILES
     vo_results.msg
+    fail_check.msg
 )
 
 #Generate added messages with any dependencies listed here
