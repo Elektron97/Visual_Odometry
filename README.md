@@ -239,12 +239,12 @@ int main(int argc, char * argv[])
 # Appunti per sviluppo del codice
 
 #### Valori Regolabili:
-- [ ] Distance: 10.0 -> NOT_MOVING
-- [ ] n min di features: 20 -> FAIL_DETECTION
-- [ ] minHessian: 85 -> SURF Algorithm
-- [ ] lowe threshold: 0.7 -> Matching Kp
-- [ ] VPF Threshold: 0.85 -> Recover Pose
-- [ ] reprojection tolerance: 0.5 -> n world_points
+- Distance: 10.0 -> NOT_MOVING
+- n min di features: 20 -> FAIL_DETECTION
+- minHessian: 85 -> SURF Algorithm
+- lowe threshold: 0.7 -> Matching Kp
+- VPF Threshold: 0.85 -> Recover Pose
+- reprojection tolerance: 0.5 -> n world_points
 
 #### Flow Chart:
 ![alt text](/docs/img_relazione/vo_flowchart_ns.png)
@@ -255,6 +255,3 @@ int main(int argc, char * argv[])
 - [ ] Scrivere la relazione.
 - [ ] World Points su Rviz con riferimenti corretti. 
 - [ ] Cheirality Check per Homography.
-- [x] Rimuovere Ipotesi Motion2D.
-- [x] Plottare risultati su Matlab.
-- [x] Quando il robot non si muove, deve continuare a pubblicare. (Se a Matlab da noia)
