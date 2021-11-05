@@ -156,11 +156,9 @@ int main(int argc, char **argv)
 	ros::NodeHandle node_obj;
 
     //Pub Object
-    ros::Publisher pub =  node_obj.advertise<nav_msgs::Odometry>("/odom",10);
-    ros::Publisher pub_pcl = node_obj.advertise<sensor_msgs::PointCloud2>("/world_points", 10);
-
     ros::Publisher pub_results = node_obj.advertise<visual_odometry::vo_results>("VO_results", 10);
     ros::Publisher pub_fail = node_obj.advertise<visual_odometry::fail_check>("VO_fail_check", 10);
+    ros::Publisher pub_pcl = node_obj.advertise<sensor_msgs::PointCloud2>("/world_points", 10);
 
     //Sub Objects
 	ros::Subscriber sub_laser=node_obj.subscribe("/zeno/laser", 1, laser_callback);
@@ -221,7 +219,7 @@ int main(int argc, char **argv)
     //deltaT for twist
     ros::Duration deltaT;
 
-    int fail_succ;
+    int fail_succ; //Check fail state
 
     /*ITERATIONS*/
     while(ros::ok())
@@ -383,9 +381,6 @@ int main(int argc, char **argv)
             pub_pcl.publish(wp_cloud);
         }
 
-        /*SHOW RESULTS*/
-        //print_VOresult(results.estimate_pos, results.estimate_rpy, GTpos, GTrpy);
-
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 
         prev_time = curr_time;
@@ -426,7 +421,7 @@ visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat
     results.estimate_twist = estimate_twist;
 
     results.error_pos = absDiff_Vec3(GTpos, estimate_pos);
-    results.error_rpy = absDiff_Vec3(GTrpy, estimate_rpy);
+    results.error_rpy = absDiff_Vec3(GTrpy, estimate_rpy, true);
     results.error_twist.linear = absDiff_Vec3(GTtwist.linear, estimate_twist.linear);
     results.error_twist.angular = absDiff_Vec3(GTtwist.angular, estimate_twist.angular);
 

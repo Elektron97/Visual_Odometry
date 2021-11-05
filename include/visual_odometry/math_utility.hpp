@@ -40,8 +40,10 @@ Vec3f rotationMatrixToEulerAngles(Mat &R);
 
 double median(vector<double> v);
 vector<double> var_avgMat(Mat v);
+double wrap2pi(double angle);
 
 geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Vector3 v1, geometry_msgs::Vector3 v2);
+geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Vector3 v1, geometry_msgs::Vector3 v2, bool isAngle);
 geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Point v1, geometry_msgs::Vector3 v2);
 
 geometry_msgs::Vector3 computeAngularVel(geometry_msgs::Vector3 rpy, Mat R, double deltaT);
@@ -256,6 +258,11 @@ vector<double> var_avgMat(Mat v)
     return statistic_values;
 }
 
+double wrap2pi(double angle)
+{
+    return atan2(sin(angle), cos(angle));
+}
+
 geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Vector3 v1, geometry_msgs::Vector3 v2)
 {
     geometry_msgs::Vector3 diff;
@@ -267,8 +274,30 @@ geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Vector3 v1, geometry_msgs::Ve
     return diff;
 }
 
-//Overload per geometry_msgs::Point
+//Overload for angles difference
+geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Vector3 v1, geometry_msgs::Vector3 v2, bool isAngle)
+{
+    geometry_msgs::Vector3 diff;
 
+    if(isAngle)
+    {
+        diff.x = abs(wrap2pi(v1.x - v2.x));
+        diff.y = abs(wrap2pi(v1.y - v2.y));
+        diff.z = abs(wrap2pi(v1.z - v2.z));
+    }
+
+    else
+    {
+        diff.x = abs(v1.x - v2.x);
+        diff.y = abs(v1.y - v2.y);
+        diff.z = abs(v1.z - v2.z);
+    }
+
+
+    return diff;
+}
+
+//Overload for geometry_msgs::Point
 geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Point v1, geometry_msgs::Vector3 v2)
 {
     geometry_msgs::Vector3 diff;
