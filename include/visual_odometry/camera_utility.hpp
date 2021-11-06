@@ -50,8 +50,6 @@ const float ratio_thresh = 0.7f;
 const float VPF_threshold = 0.85;
 rel_pose_method rel_method = ESSENTIAL;
 
-bool test_cheirality = false; //true: New Code | false: Old Code
-
 /*Triangulation*/
 const float reprojection_tolerance = 0.5;
 
@@ -574,117 +572,54 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
     switch (rel_method)
     {
     case ESSENTIAL:
-        //NEW CODE (Filtro gli inlier con il cheirality check)
-        if(test_cheirality)
+        while(prob > 0.9)
         {
-            while(prob > 0.9)
+            Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, prob, threshold, RANSAC_mask);
+
+            //RANSAC_mask, vettore contenente N elementi (N = length(keypoints)) in cui indica:
+            // 0 = outlier
+            // 1 = inlier
+
+            int outlierCount = 0;
+            for(int i = 0; i < RANSAC_mask.size(); i++)
             {
-                Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, prob, threshold, RANSAC_mask);
+                if(RANSAC_mask[i] == 0)
+                    outlierCount ++;
 
-                //RANSAC_mask, vettore contenente N elementi (N = length(keypoints)) in cui indica:
-                // 0 = outlier
-                // 1 = inlier
+            }
 
-                int outlierCount = 0;
-                for(int i = 0; i < RANSAC_mask.size(); i++)
-                {
-                    if(RANSAC_mask[i] == 0)
-                        outlierCount ++;
+            double inlierCount = RANSAC_mask.size() - outlierCount;
 
-                }
-
-                double inlierCount = RANSAC_mask.size() - outlierCount;
-
-                if((inlierCount/RANSAC_mask.size()) < 0.3)
-                {
-                    prob -= 0.02;
-                    threshold += 0.1;
-                    continue;        
-                }
-
-                //extract Inlier
-                inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
-
-                //finally, recoverPose()
-                int validInlier = recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t, RANSAC_mask);
-
-                //Nonostante nella doc di OpenCV e' presente, qui sembra non esserci questo overload.
-                //Mat world_points_test;
-                //int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t, 50, RANSAC_mask, world_points_test);
-
-                float validPointFraction = (float) validInlier/inlier_converted.Kpoints1.size();
-
-                //ROS_INFO("VPF: %f", validPointFraction);
-
-                if(validPointFraction > VPF_threshold)
-                {
-                    ROS_WARN("Valid relative Pose");
-                    success = true;
-
-                    //Test: Restituisco gli inlier
-                    //che hanno passato il chierality check
-
-                    inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
-                    break;  
-                }
-                    
+            if((inlierCount/RANSAC_mask.size()) < 0.3)
+            {
                 prob -= 0.02;
                 threshold += 0.1;
+                continue;        
             }
-        }
 
-        //OLD CODE
-        else
-        {
-            while(prob > 0.9)
+            //extract Inlier
+            inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
+
+            //finally, recoverPose()
+            int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
+
+            //Nonostante nella doc di OpenCV e' presente, qui sembra non esserci questo overload.
+            //Mat world_points_test;
+            //int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t, 50, RANSAC_mask, world_points_test);
+
+            float validPointFraction = (float) validInlier/inlier_converted.Kpoints1.size();
+
+            //ROS_INFO("VPF: %f", validPointFraction);
+
+            if(validPointFraction > VPF_threshold)
             {
-                Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, prob, threshold, RANSAC_mask);
-
-                //RANSAC_mask, vettore contenente N elementi (N = length(keypoints)) in cui indica:
-                // 0 = outlier
-                // 1 = inlier
-
-                int outlierCount = 0;
-                for(int i = 0; i < RANSAC_mask.size(); i++)
-                {
-                    if(RANSAC_mask[i] == 0)
-                        outlierCount ++;
-
-                }
-
-                double inlierCount = RANSAC_mask.size() - outlierCount;
-
-                if((inlierCount/RANSAC_mask.size()) < 0.3)
-                {
-                    prob -= 0.02;
-                    threshold += 0.1;
-                    continue;        
-                }
-
-                //extract Inlier
-                inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
-
-                //finally, recoverPose()
-                int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
-
-                //Nonostante nella doc di OpenCV e' presente, qui sembra non esserci questo overload.
-                //Mat world_points_test;
-                //int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t, 50, RANSAC_mask, world_points_test);
-
-                float validPointFraction = (float) validInlier/inlier_converted.Kpoints1.size();
-
-                //ROS_INFO("VPF: %f", validPointFraction);
-
-                if(validPointFraction > VPF_threshold)
-                {
-                    ROS_WARN("Valid relative Pose");
-                    success = true;
-                    break;  
-                }
-                    
-                prob -= 0.02;
-                threshold += 0.1;
+                ROS_WARN("Valid relative Pose");
+                success = true;
+                break;  
             }
+                
+            prob -= 0.02;
+            threshold += 0.1;
         }
         break;
     
@@ -721,13 +656,9 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
             vector<Mat> R_h, t_h;
             int solutions = decomposeHomographyMat(H, cameraMatrix, R_h, t_h, noArray());
 
-            /*for(int i = 0; i < solutions; i++)
-            {
-                ROS_INFO("%d-TH SOLUTION", i++);
-                cout << R_h[i] << endl;
-                cout << t_h[i] << endl;
-            }*/
+            // int solutions: n_solutions
 
+            //Choice First Solution
             R = R_h[0];
             t = t_h[0];
 

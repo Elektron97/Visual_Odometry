@@ -252,8 +252,6 @@ int main(int argc, char * argv[])
 ![alt text](/docs/img_relazione/vo_flowchart_ns.png)
 
 #### Task List:
-- [ ] image_transport compressed.
-- [ ] Provare cv_bridge con opencv_contrib 3.2.0.
 - [ ] Scrivere la relazione.
-- [ ] World Points su Rviz con riferimenti corretti. 
-- [ ] Cheirality Check per Homography.
+- [x] World Points su Matlab con riferimenti corretti. 
+- [ ] Cheirality Check per Homography -> Bisogna riscrivere recoverPose con decomposeHomography
