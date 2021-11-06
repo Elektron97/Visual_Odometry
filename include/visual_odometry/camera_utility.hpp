@@ -8,7 +8,7 @@
 #include "sensor_msgs/CompressedImage.h"
 
 /*DEFINE*/
-#define DISTANCE 10.0
+#define DISTANCE 20.0
 #define MIN_NUM_FEATURES 20.0
 
 /*NAMESPACES*/
@@ -470,11 +470,18 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
      **********************************************************************************/
 
     //Trasformo in coordinate {W} i world_points.
-    Mat world_pointsW(world_points.rows, world_points.cols, CV_64F);
+    Mat world_pointsW = Mat::zeros(world_points.rows, world_points.cols, CV_64F);
 
     for(int i = 0; i < world_points.cols; i++)
     {
-        world_pointsW.col(i) = coordTransf(SF*world_points.col(i), orient_wk, scaled_locW);
+        //Local Variable for Loops
+        Mat local_WP = coordTransf(SF*world_points.col(i), orient_wk, scaled_locW);
+
+        //Fill WP in 3 components
+        for(int j = 0; j < world_points.rows; j++)
+        {
+            world_pointsW.at<double>(j, i) = local_WP.at<double>(j); 
+        }
     }
 
     vector<Mat> absPose = {scaled_locW, orient_wk, world_pointsW};
@@ -556,7 +563,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 
     //RANSAC Parameters
     double prob = 0.99;
-    double threshold = 0.5; 
+    double threshold = 0.2; //0.5
 
     vector<uchar> RANSAC_mask;
     Mat R, t;

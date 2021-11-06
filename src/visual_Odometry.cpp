@@ -315,7 +315,6 @@ int main(int argc, char **argv)
         if(rel_pose.success)
         {
             world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
-
             if(!world_points.empty())
                 SF = scaleFactor(distance, world_points);   //Update Scale Factor
 

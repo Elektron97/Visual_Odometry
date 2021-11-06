@@ -239,12 +239,14 @@ int main(int argc, char * argv[])
 # Appunti per sviluppo del codice
 
 #### Valori Regolabili:
-- Distance: 10.0 -> NOT_MOVING
+- Distance: 20 -> NOT_MOVING
 - n min di features: 20 -> FAIL_DETECTION
 - minHessian: 85 -> SURF Algorithm
 - lowe threshold: 0.7 -> Matching Kp
 - VPF Threshold: 0.85 -> Recover Pose
 - reprojection tolerance: 0.5 -> n world_points
+- prob: 0.99 -> RANSAC Algorithm
+- threshold: 0.2 -> RANSAC Algorithm
 
 #### Flow Chart:
 ![alt text](/docs/img_relazione/vo_flowchart_ns.png)
