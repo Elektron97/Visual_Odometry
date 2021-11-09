@@ -249,12 +249,13 @@ int main(int argc, char * argv[])
 - threshold: 0.2 -> RANSAC Algorithm
 
 #### Flow Chart:
-![alt text](/docs/img_relazione/vo_flowchart_ns.png)
+![alt text](/docs/img_relazione/vo_flowchart.png)
 
 #### Task List:
 - [ ] Scrivere la relazione.
+- [ ] Presentazione dei Risultati.
 - [x] World Points su Matlab con riferimenti corretti. 
-- [ ] Cheirality Check per Homography -> Bisogna riscrivere recoverPose con decomposeHomography
+- [x] Cheirality Check per Homography -> Bisogna riscrivere recoverPose con decomposeHomography
 - [ ] Nodo come classe
 - [ ] Variabili Static
 - [ ] image_transport 
