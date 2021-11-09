@@ -255,3 +255,6 @@ int main(int argc, char * argv[])
 - [ ] Scrivere la relazione.
 - [x] World Points su Matlab con riferimenti corretti. 
 - [ ] Cheirality Check per Homography -> Bisogna riscrivere recoverPose con decomposeHomography
+- [ ] Nodo come classe
+- [ ] Variabili Static
+- [ ] image_transport 

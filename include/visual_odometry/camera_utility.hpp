@@ -712,9 +712,9 @@ Mat filter_convertWP(Mat world_points, vector<double> reproject_mean, Mat R, Mat
 
     for(i; i < world_points.cols; i++)
     {
-        if((reproject_mean[i] < reprojection_tolerance) && (world_points.at<double>(2, i)))
+        if((reproject_mean[i] < reprojection_tolerance) && (world_points.at<double>(2, i) > 0))
         {
-            //goodWP.push_back(world_points.col(i).t()); //goodWP in {k-1}
+            //converto direttamente nel frame {k}
             goodWP.push_back(coordTransf(world_points.col(i), R, t).t()); //converto direttamente nel frame {k}
         }
             
