@@ -48,7 +48,7 @@ const float ratio_thresh = 0.7f;
 /*Relative Pose parameters*/
 //Valid Point Fraction Threshold
 const float VPF_threshold = 0.85;
-rel_pose_method rel_method = ESSENTIAL;
+rel_pose_method rel_method = HOMOGRAPHY;
 
 /*Triangulation*/
 const float reprojection_tolerance = 0.5;
@@ -626,6 +626,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
         break;
     
     case HOMOGRAPHY:
+        threshold = 0.5;
         while(prob > 0.9)
         {
             Mat H = findHomography(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC, threshold, RANSAC_mask, 2000, prob);
@@ -644,13 +645,12 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 
             double inlierCount = RANSAC_mask.size() - outlierCount;
 
-            /*if((inlierCount/RANSAC_mask.size()) < 0.3)
+            if((inlierCount/RANSAC_mask.size()) < 0.3)
             {
-                cout << inlierCount/RANSAC_mask.size() << endl;
                 prob -= 0.02;
                 threshold += 0.1;
                 continue;        
-            }*/
+            }
 
             //extract Inlier
             inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
