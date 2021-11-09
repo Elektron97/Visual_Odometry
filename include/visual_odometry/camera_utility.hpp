@@ -117,6 +117,8 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 Mat my_convertFromHom(Mat points4d);
 Mat filter_convertWP(Mat world_points, vector<double> reproject_mean, Mat R, Mat t);
 
+int recoverPoseHomography(Mat H, KpAsPoint2f_Match inlier, Mat cameraMatrix, Mat& R, Mat& t);
+
 /*********Source**********/
 
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
@@ -561,7 +563,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 
     //RANSAC Parameters
     double prob = 0.99;
-    double threshold = 0.2; //0.5
+    double threshold = 0.2; //0.2
 
     vector<uchar> RANSAC_mask;
     Mat R, t;
@@ -642,34 +644,33 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 
             double inlierCount = RANSAC_mask.size() - outlierCount;
 
-            if((inlierCount/RANSAC_mask.size()) < 0.3)
+            /*if((inlierCount/RANSAC_mask.size()) < 0.3)
             {
-                ROS_WARN("Troppi Outlier!");
+                cout << inlierCount/RANSAC_mask.size() << endl;
                 prob -= 0.02;
                 threshold += 0.1;
                 continue;        
-            }
+            }*/
 
             //extract Inlier
             inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
 
-            vector<Mat> R_h, t_h;
-            int solutions = decomposeHomographyMat(H, cameraMatrix, R_h, t_h, noArray());
+            int validInlier = recoverPoseHomography(H, inlier_converted, cameraMatrix, R, t);
 
-            // int solutions: n_solutions
+            float validPointFraction = (float) validInlier/inlier_converted.Kpoints1.size();
 
-            //Choice First Solution
-            R = R_h[0];
-            t = t_h[0];
-
-            success = true;
+            if(validPointFraction > VPF_threshold)
+            {
+                ROS_WARN("Valid relative Pose");
+                success = true;
+                break;  
+            }
                 
             prob -= 0.02;
             threshold += 0.1;
         }
         break;
     }
-
 
     RelativePose rel_pose;
     rel_pose.R = R;
@@ -683,7 +684,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
      * Restituisce di fatto la trasf. omogenea  *
      * T {k-1} -> {k}                           *
      ********************************************/
-    
+
     return rel_pose;
 }
 
@@ -740,4 +741,44 @@ Mat filter_convertWP(Mat world_points, vector<double> reproject_mean, Mat R, Mat
 
         return goodWP_z.t();
     }
+}
+
+int recoverPoseHomography(Mat H, KpAsPoint2f_Match inlier, Mat cameraMatrix, Mat& R, Mat& t)
+{
+    //Decompose Homography Matrix
+    vector<Mat> R_candidates, t_candidates;
+    int solutions = decomposeHomographyMat(H, cameraMatrix, R_candidates, t_candidates, noArray());
+
+    //n_solutions usually 4
+    //Cheirality Check: triangulated_points.z > 0
+
+    Mat eye_m = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
+    Mat zero_v = (Mat1d(3, 1) << 0, 0, 0);
+    Mat proj_std = projectionMatrix(eye_m, zero_v, cameraMatrix);
+
+    vector<Mat> triangulateCandidates(solutions);
+    vector<int> n_goodTP(solutions);
+
+    for(int i = 0; i < solutions; i++)
+    {
+        triangulatePoints(proj_std, projectionMatrix(R_candidates[i], t_candidates[i], cameraMatrix), inlier.Kpoints1, inlier.Kpoints2, triangulateCandidates[i]);
+        triangulateCandidates[i] = my_convertFromHom(triangulateCandidates[i]);
+
+        //Per ogni punto triangolato, controllo quant hanno z > 0
+        for(int j = 0; j < triangulateCandidates[i].cols; j++)
+        {
+            if(triangulateCandidates[i].at<double>(2, j) > 0)
+                n_goodTP[i]++;
+
+        }
+
+    }
+    
+    //extract index of best candidates
+    int idx_max = max_element(n_goodTP.begin(), n_goodTP.end()) - n_goodTP.begin();
+
+    R = R_candidates[idx_max];
+    t = t_candidates[idx_max];
+
+    return n_goodTP[idx_max];
 }
