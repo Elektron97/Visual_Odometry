@@ -50,6 +50,8 @@ const float ratio_thresh = 0.7f;
 const float VPF_threshold = 0.85; //0.85
 rel_pose_method rel_method = ESSENTIAL;
 
+const double distance_threshold = 50.0;
+
 /*Triangulation*/
 const float reprojection_tolerance = 0.5;
 
@@ -769,7 +771,9 @@ int recoverPoseHomography(Mat H, KpAsPoint2f_Match inlier, Mat cameraMatrix, Mat
         //Per ogni punto triangolato, controllo quant hanno z > 0
         for(int j = 0; j < triangulateCandidates[i].cols; j++)
         {
-            if(triangulateCandidates[i].at<double>(2, j) > 0)
+            //bool good_condition = ((triangulateCandidates[i].at<double>(2, j) > 0) && (triangulateCandidates[i].at<double>(2, j) < distance_threshold));
+            bool good_condition = (triangulateCandidates[i].at<double>(2, j) > 0);
+            if(good_condition)
                 n_goodTP[i]++;
 
         }
