@@ -10,3 +10,6 @@ geometry_msgs/Twist estimate_twist  #[m/s] and [rad/s]
 geometry_msgs/Vector3 error_pos #[m]
 geometry_msgs/Vector3 error_rpy #[rad]
 geometry_msgs/Twist error_twist #[m/s] and [rad/s]
+
+#Scale Factor
+float64 SF 

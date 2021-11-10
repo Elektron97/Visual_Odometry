@@ -19,10 +19,12 @@
 <node name="ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_twist/angular"/>-->
 
 <!--Plot Errors-->
-<!--<node name="err_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_pos"/>-->
-<!--<node name="err_rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_rpy"/>-->
-<!--<node name="err_vel_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/linear"/>-->
-<!--<node name="err_ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/angular"/>-->
+<!--<node name="err_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_pos"/>
+<node name="err_rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_rpy"/>
+<node name="err_vel_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/linear"/>
+<node name="err_ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/angular"/>
+
+<node name="SF_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/SF"/>-->
 
 <!--Plot Fail and Success-->
 <!--<node name="fail_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_fail_check/fail_detect:not_moving:fail_pose:success"/>-->

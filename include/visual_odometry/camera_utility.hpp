@@ -47,7 +47,7 @@ const float ratio_thresh = 0.7f;
 
 /*Relative Pose parameters*/
 //Valid Point Fraction Threshold
-const float VPF_threshold = 0.85;
+const float VPF_threshold = 0.85; //0.85
 rel_pose_method rel_method = ESSENTIAL;
 
 /*Triangulation*/

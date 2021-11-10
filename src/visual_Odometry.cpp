@@ -424,6 +424,8 @@ visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat
     results.error_twist.linear = absDiff_Vec3(GTtwist.linear, estimate_twist.linear);
     results.error_twist.angular = absDiff_Vec3(GTtwist.angular, estimate_twist.angular);
 
+    results.SF = SF;
+
     return results;
 }
 
