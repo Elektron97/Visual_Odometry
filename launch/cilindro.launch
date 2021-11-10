@@ -2,7 +2,7 @@
 <launch>
 
 <!--Play bag files "parete"-->
-<node pkg="rosbag" type="play" name="player" args="--clock /home/daniele/bagfiles/parete_3.5m_AR.bag"/>
+<node pkg="rosbag" type="play" name="player" args="--clock /home/daniele/bagfiles/cilindro_square.bag"/>
 
 <!--Launch visual_Odometry.cpp-->
 <node name="visual_Odometry" pkg ="visual_odometry" type="visual_Odometry" output="screen"/>
@@ -19,18 +19,15 @@
 <node name="ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_twist/angular"/>-->
 
 <!--Plot Errors-->
-<!--<node name="err_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_pos"/>-->
-<!--<node name="err_rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_rpy"/>-->
-<!--<node name="err_vel_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/linear"/>-->
-<!--<node name="err_ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/angular"/>-->
+<!--<node name="err_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_pos"/>
+<node name="err_rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_rpy"/>
+<node name="err_vel_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/linear"/>
+<node name="err_ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/angular"/>-->
 
 <!--Plot Fail and Success-->
 <!--<node name="fail_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_fail_check/fail_detect:not_moving:fail_pose:success"/>-->
 
 <!--Visualizing World Points in Rviz-->
 <!--<node type="rviz" name="rviz" pkg="rviz" args="-d $(find visual_odometry)/rviz/world_points.rviz" />-->
-
-<!--Record VO_Results-->
-<!--<node pkg="rosbag" type="record" name="record_VOresults" args="record -o /VO_results"/>-->
 
 </launch>
