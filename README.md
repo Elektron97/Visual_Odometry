@@ -254,8 +254,6 @@ int main(int argc, char * argv[])
 #### Task List:
 - [ ] Scrivere la relazione.
 - [ ] Presentazione dei Risultati.
-- [x] World Points su Matlab con riferimenti corretti. 
-- [x] Cheirality Check per Homography -> Bisogna riscrivere recoverPose con decomposeHomography
 - [ ] Nodo come classe
 - [ ] Variabili Static
 - [ ] image_transport 

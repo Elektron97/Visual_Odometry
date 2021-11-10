@@ -563,7 +563,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 
     //RANSAC Parameters
     double prob = 0.99;
-    double threshold = 0.2; //0.2
+    double threshold = 0.2;
 
     vector<uchar> RANSAC_mask;
     Mat R, t;
@@ -626,7 +626,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
         break;
     
     case HOMOGRAPHY:
-        threshold = 0.5;
+        threshold = 0.5; //0.5
         while(prob > 0.9)
         {
             Mat H = findHomography(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC, threshold, RANSAC_mask, 2000, prob);
@@ -648,7 +648,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
             if((inlierCount/RANSAC_mask.size()) < 0.3)
             {
                 prob -= 0.02;
-                threshold += 0.1;
+                threshold += 0.1; 
                 continue;        
             }
 
@@ -750,6 +750,8 @@ int recoverPoseHomography(Mat H, KpAsPoint2f_Match inlier, Mat cameraMatrix, Mat
     int solutions = decomposeHomographyMat(H, cameraMatrix, R_candidates, t_candidates, noArray());
 
     //n_solutions usually 4
+    //1-2) R1 +-t1
+    //3-4) R2 +-t2
     //Cheirality Check: triangulated_points.z > 0
 
     Mat eye_m = (Mat1d(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
