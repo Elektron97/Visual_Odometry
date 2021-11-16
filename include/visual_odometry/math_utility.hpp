@@ -309,7 +309,7 @@ geometry_msgs::Vector3 absDiff_Vec3(geometry_msgs::Point v1, geometry_msgs::Vect
     return diff;
 }
 
-geometry_msgs::Vector3 computeAngularVel(geometry_msgs::Vector3 rpy, Mat R, double deltaT)
+geometry_msgs::Vector3 computeAngularVel(geometry_msgs::Vector3 rpy, Mat R, double deltaT, Mat Rbc)
 {
     //deltaRPY
     geometry_msgs::Vector3 rpy_dot = mat2Euler(R);
@@ -320,9 +320,11 @@ geometry_msgs::Vector3 computeAngularVel(geometry_msgs::Vector3 rpy, Mat R, doub
 
     //Angular Velocity
     geometry_msgs::Vector3 w;
-    w.x = rpy_dot.x - sin(rpy.y)*rpy_dot.z;
-    w.y = cos(rpy.x)*rpy_dot.y + cos(rpy.y)*sin(rpy.x)*rpy_dot.z;
-    w.z = -sin(rpy.y)*rpy_dot.y + cos(rpy.y)*cos(rpy.x)*rpy_dot.z;
+
+    //w = Rbc*J2(rpy)*rpy_dot
+    w.x = (sin(rpy.x)/cos(rpy.y))*rpy_dot.y + (cos(rpy.x)/cos(rpy.y))*rpy_dot.z;
+    w.y = -rpy_dot.x - sin(rpy.x)*tan(rpy.y)*rpy_dot.y - cos(rpy.x)*tan(rpy.y)*rpy_dot.z;
+    w.z = -cos(rpy.x)*rpy_dot.y + sin(rpy.x)*rpy_dot.z;
 
     return w;
 }
@@ -349,7 +351,7 @@ geometry_msgs::Twist estimateTwist(ros::Duration deltaT, Mat R, Mat t, double SF
     else
     {
         //MOTION 3D
-        estimate_twist.angular = computeAngularVel(estimate_rpy, R, deltaT.toSec());
+        estimate_twist.angular = computeAngularVel(estimate_rpy, R, deltaT.toSec(), Rbc);
     }
 
     return estimate_twist;
