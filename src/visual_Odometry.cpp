@@ -59,7 +59,7 @@ sensor_msgs::CompressedImage camera_sx;
 nav_msgs::Odometry ground_truth;
 
 //function declaration
-void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy, geometry_msgs::Point GTpos, geometry_msgs::Vector3 GTrpy);
+void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy);
 visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT);
 visual_odometry::fail_check publish_FailCheck(int fail_succ);
 
@@ -409,6 +409,8 @@ visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat
     geometry_msgs::Vector3 estimate_rpy = mat2Euler(orientation*Rbc.t()); //{b} -> {W} (istante k)
     geometry_msgs::Vector3 estimate_pos = mat2Vec3(location);
 
+    print_VOresult(estimate_pos, estimate_rpy);
+
     geometry_msgs::Twist estimate_twist = estimateTwist(deltaT, R, t, SF, estimate_rpy, Rbc, motion2D);
 
     geometry_msgs::Point GTpos = ground_truth.pose.pose.position; //{ENU} -> {Body} (istante k)
@@ -467,12 +469,10 @@ visual_odometry::fail_check publish_FailCheck(int fail_succ)
     return fail_msg;
 }
 
-void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy, geometry_msgs::Point GTpos, geometry_msgs::Vector3 GTrpy)
+void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy)
 {
     ROS_WARN("************************************Visual Odometry**************************************");
     ROS_INFO("Estimate Position:        [x:     %f, \t y:      %f, \t z:   %f]", estimate_pos.x, estimate_pos.y, estimate_pos.z);
     ROS_INFO("Estimate RPY:             [roll:  %f, \t pitch:  %f, \t yaw: %f ]", estimate_rpy.x, estimate_rpy.y, estimate_rpy.z);
     ROS_INFO("-----------------------------------------------------------------------------------------");
-    ROS_INFO("Ground Truth Position:    [x:     %f, \t y:      %f, \t z:   %f]", GTpos.x, GTpos.y, GTpos.z);
-    ROS_INFO("Ground Truth RPY:         [roll:  %f, \t pitch:  %f, \t yaw: %f ]\n\n", GTrpy.x, GTrpy.y, GTrpy.z);
 }

@@ -12,4 +12,4 @@ geometry_msgs/Vector3 error_rpy #[rad]
 geometry_msgs/Twist error_twist #[m/s] and [rad/s]
 
 #Scale Factor
-float64 SF 
+float64 SF

@@ -771,8 +771,8 @@ int recoverPoseHomography(Mat H, KpAsPoint2f_Match inlier, Mat cameraMatrix, Mat
         //Per ogni punto triangolato, controllo quant hanno z > 0
         for(int j = 0; j < triangulateCandidates[i].cols; j++)
         {
-            //bool good_condition = ((triangulateCandidates[i].at<double>(2, j) > 0) && (triangulateCandidates[i].at<double>(2, j) < distance_threshold));
-            bool good_condition = (triangulateCandidates[i].at<double>(2, j) > 0);
+            bool good_condition = ((triangulateCandidates[i].at<double>(2, j) > 0) && (triangulateCandidates[i].at<double>(2, j) < distance_threshold));
+            //bool good_condition = (triangulateCandidates[i].at<double>(2, j) > 0);
             if(good_condition)
                 n_goodTP[i]++;
 
