@@ -80,7 +80,9 @@ marta_msgs::Imu imu_obj;
 
 //function declaration
 void getCameraParam(ros::NodeHandle node_obj);
-void updateGT(geometry_msgs::Point posGT, marta_msgs::Imu imu);
+void updateGT(geometry_msgs::Point posGT);
+void updateGT(marta_msgs::Imu imu);
+//void updateGT(geometry_msgs::Point posGT, marta_msgs::Imu imu);
 void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy);
 visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT);
 visual_odometry::fail_check publish_FailCheck(int fail_succ);
@@ -108,6 +110,8 @@ void navCompensated_callback(const geometry_msgs::Point::ConstPtr& msg)
     nav_ned_compensated.x = msg->x;
     nav_ned_compensated.y = msg->y;
     nav_ned_compensated.z = msg->z;
+
+    updateGT(nav_ned_compensated);
 }
 
 void imu_callback(const marta_msgs::Imu::ConstPtr& msg)
@@ -119,6 +123,8 @@ void imu_callback(const marta_msgs::Imu::ConstPtr& msg)
     imu_obj.magnetic_field = msg->magnetic_field;
     imu_obj.acceleration = msg->acceleration;
     imu_obj.free_acceleration = msg->free_acceleration;
+
+    updateGT(imu_obj);
 }
 
 void altitude_callback(const marta_msgs::Altitude::ConstPtr& msg)
@@ -170,9 +176,6 @@ int main(int argc, char **argv)
     //Undistort Image
     Mat prev_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
     ros::Time prev_time = camera_sx.header.stamp;
-
-    //Aggiorno il GT da Imu e Nav_compensated
-    updateGT(nav_ned_compensated, imu_obj);
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
     //convert quaternion in Rotational Matrix
@@ -381,11 +384,14 @@ void getCameraParam(ros::NodeHandle node_obj)
     node_obj.getParam("/distortion_coefficient/tangential/p2", p2);
 }
 
-void updateGT(geometry_msgs::Point posGT, marta_msgs::Imu imu)
+void updateGT(geometry_msgs::Point posGT)
 {
     /*Position Ground Truth from nav_compensated*/
     ground_truth.pose.pose.position = posGT;
+}
 
+void updateGT(marta_msgs::Imu imu)
+{
     /*Orientation and Twist Ground Truth from Imu*/
     //Compute deltaT for Integration
     ros::Duration integrationTime = imu.header.stamp - ground_truth.header.stamp;
@@ -408,6 +414,34 @@ void updateGT(geometry_msgs::Point posGT, marta_msgs::Imu imu)
     ground_truth.twist.twist.linear.y = ground_truth.twist.twist.linear.y + (integrationTime.toSec())*imu.acceleration.y;
     ground_truth.twist.twist.linear.z = ground_truth.twist.twist.linear.z + (integrationTime.toSec())*imu.acceleration.z;
 }
+
+/*void updateGT(geometry_msgs::Point posGT, marta_msgs::Imu imu)
+{
+    //Position Ground Truth from nav_compensated
+    ground_truth.pose.pose.position = posGT;
+
+    //Orientation and Twist Ground Truth from Imu
+    //Compute deltaT for Integration
+    ros::Duration integrationTime = imu.header.stamp - ground_truth.header.stamp;
+
+    //then update GT Header
+    ground_truth.header = imu.header;
+
+    //Quaternion
+    ground_truth.pose.pose.orientation.w = imu.quaternion.w;
+    ground_truth.pose.pose.orientation.x = imu.quaternion.x;
+    ground_truth.pose.pose.orientation.y = imu.quaternion.y;
+    ground_truth.pose.pose.orientation.z = imu.quaternion.z;
+
+    //Angular Rate
+    ground_truth.twist.twist.angular = imu.angular_rate;
+
+    //Linear Velocity: Integration of Acceleration
+    //v(k) = v(k-1) + T*a(k)
+    ground_truth.twist.twist.linear.x = ground_truth.twist.twist.linear.x + (integrationTime.toSec())*imu.acceleration.x;
+    ground_truth.twist.twist.linear.y = ground_truth.twist.twist.linear.y + (integrationTime.toSec())*imu.acceleration.y;
+    ground_truth.twist.twist.linear.z = ground_truth.twist.twist.linear.z + (integrationTime.toSec())*imu.acceleration.z;
+}*/
 
 visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT)
 {
