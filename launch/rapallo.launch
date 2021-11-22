@@ -8,13 +8,13 @@
 <node pkg="rosbag" type="play" name="player" args="--clock /home/daniele/bagfiles/Rapallo.bag"/>
 
 <!--Launch visual_Odometry.cpp-->
-<!--<node name="visual_Odometry" pkg ="visual_odometry" type="visual_Odometry" output="screen"/>-->
+<node name="visual_Odometry" pkg ="visual_odometry" type="visual_Odometry" output="screen"/>
 
 <!--Plot Results-->
 <!--Plot Ground Truth-->
-<node name="gt_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/nav_status_ned_compensated"/>
+<!--<node name="gt_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/nav_status_ned_compensated"/>
 <node name="gt_rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/imu_compensated/orientation/roll:pitch:yaw"/>
-<node name="altitude_plot" pkg="rqt_plot" type="rqt_plot" args="/drivers/altitude/altitude"/>
+<node name="altitude_plot" pkg="rqt_plot" type="rqt_plot" args="/drivers/altitude/altitude"/>-->
 
 <!--Plot Estimate Variables-->
 <!--<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_pos"/>-->

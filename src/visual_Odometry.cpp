@@ -88,7 +88,6 @@ visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat
 visual_odometry::fail_check publish_FailCheck(int fail_succ);
 
 /*CALLBACK*/
-
 void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
 {   
     /************************
@@ -214,6 +213,8 @@ int main(int argc, char **argv)
             imshow("Image", ros2cv(camera_sx));
             waitKey(fps);
         }
+
+        cout << camera_sx.header.seq << endl;
 
         /*FEATURE MATCHING*/
         Mat curr_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
