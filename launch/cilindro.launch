@@ -1,0 +1,36 @@
+<!--Launch per Visual Odometry-->
+<launch>
+
+<!-- Load Intrinsic Camera Parameters-->
+<rosparam file = "$(find visual_odometry)/config/camera_intrinsic.yaml"/>
+
+<!--Play bag files "parete"-->
+<node pkg="rosbag" type="play" name="player" args="--clock /home/daniele/bagfiles/cilindro_square.bag"/>
+
+<!--Launch visual_Odometry.cpp-->
+<node name="visual_Odometry" pkg ="visual_odometry" type="visual_Odometry" output="screen"/>
+
+<!--Plot Results-->
+<!--Plot Ground Truth-->
+<!--<node name="gt_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/zeno/pose_gt/pose/pose/position"/>-->
+<!--<node name="gt_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/zeno/pose_gt/twist/twist/angular"/>-->
+
+<!--Plot Estimate Variables-->
+<!--<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_pos"/>
+<node name="rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_rpy"/>
+<node name="vel_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_twist/linear"/>-->
+<!--<node name="ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_twist/angular"/>-->
+
+<!--Plot Errors-->
+<!--<node name="err_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_pos"/>
+<node name="err_rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_rpy"/>
+<node name="err_vel_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/linear"/>
+<node name="err_ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/error_twist/angular"/>-->
+
+<!--Plot Fail and Success-->
+<!--<node name="fail_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_fail_check/fail_detect:not_moving:fail_pose:success"/>-->
+
+<!--Visualizing World Points in Rviz-->
+<!--<node type="rviz" name="rviz" pkg="rviz" args="-d $(find visual_odometry)/rviz/world_points.rviz" />-->
+
+</launch>

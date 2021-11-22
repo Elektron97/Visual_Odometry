@@ -1,0 +1,19 @@
+camera_intrinsic:
+  fx: 407.0646129842357
+  fy: 407.0646129842357
+  ccxLeft: 384.5
+  ccyLeft: 246.5
+
+distortion_coefficient:
+  radial:
+    k1: 0.0
+    k2: 0.0
+  tangential:
+    p1: 0.0
+    p2: 0.0
+
+
+
+
+
+
