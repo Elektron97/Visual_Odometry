@@ -25,6 +25,7 @@
   <build_depend>nav_msgs</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>pcl_ros</build_depend>
+  <build_depend>marta_msgs</build_depend>
 
 <!--Build Export Depend-->
   <build_export_depend>cv_bridge</build_export_depend>

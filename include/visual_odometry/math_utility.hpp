@@ -10,7 +10,6 @@
 
 /*ROS MSGS*/
 #include "sensor_msgs/CompressedImage.h"
-#include "visual_odometry/vo_results.h"
 
 /*NAMESPACES*/
 using namespace std;

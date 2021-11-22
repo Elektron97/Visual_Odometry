@@ -3,14 +3,16 @@
 ***********************************************/
 
 
-/**********************************************TOPICS AND MSGS****************************************************
-*topics:      /zeno/dvl                                         911 msgs    : uuv_sensor_ros_plugins_msgs/DVL    *
-*             /zeno/imu                                        6555 msgs    : sensor_msgs/Imu                    *   
-*             /zeno/laser                                       656 msgs    : sensor_msgs/LaserScan              *
-*             /zeno/pose_gt                                    2622 msgs    : nav_msgs/Odometry                  *
-*             /zeno/zeno/cameraleft/camera_image/compressed    2359 msgs    : sensor_msgs/CompressedImage        *
-*             /zeno/zeno/cameraright/camera_image/compressed   2359 msgs    : sensor_msgs/CompressedImage        *
-******************************************************************************************************************/
+/**********************************************TOPICS AND MSGS***************************************************
+*topics:      /drivers/altitude                                     msg: marta_msgs/Altitude                    *
+*             /drivers/depth                                        msg: marta_msgs/Depth                       *   
+*             /drivers/dvl                                          msg: marta_msgs/Dvl                         *
+*             /drivers/imu                                          msg: marta_msgs/Imu                         *
+*             /imu_compensated                                      msg: marta_msgs/Imu                         *
+*             /nav_status                                           msg: marta_msgs/NavStatus                   *
+*             /nav_status_ned_compensated                           msg: geometry_msgs/Point                    *
+*             /pylon_camera/image_raw/compressed                    msg: sensor_msgs/CompressedImage            *
+*****************************************************************************************************************/
 
 /*INCLUDE*/
 //library
@@ -27,6 +29,10 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
+
+//marta_msgs
+#include "marta_msgs/Altitude.h"
+#include "marta_msgs/Imu.h"
 
 //custom msg
 #include "visual_odometry/vo_results.h"
@@ -63,49 +69,23 @@ double p2;
 Mat Rbc; //Rot. Matrix from {C} -> {B}
 
 //Sensor  
-sensor_msgs::LaserScan laser;
 sensor_msgs::CompressedImage camera_sx;
 
 //Ground Truth
 nav_msgs::Odometry ground_truth;
 
+geometry_msgs::Point nav_ned_compensated;
+marta_msgs::Altitude altitude;
+marta_msgs::Imu imu_obj;
+
 //function declaration
 void getCameraParam(ros::NodeHandle node_obj);
+void updateGT(geometry_msgs::Point posGT, marta_msgs::Imu imu);
 void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy);
 visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT);
 visual_odometry::fail_check publish_FailCheck(int fail_succ);
 
 /*CALLBACK*/
-
-void laser_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
-{
-    /****************************
-    * std_msgs/Header header    *
-    *    uint32 seq             *
-    *    time stamp             *
-    *    string frame_id        *
-    *  float32 angle_min        *
-    *  float32 angle_max        *
-    *  float32 angle_increment  *
-    *  float32 time_increment   *
-    *  float32 scan_time        *
-    *  float32 range_min        *
-    *  float32 range_max        *
-    *  float32[] ranges         *
-    *  float32[] intensities    *
-    *****************************/
-
-   laser.header = msg->header;
-   laser.angle_min = msg->angle_min;
-   laser.angle_max = msg->angle_max;
-   laser.angle_increment = msg->angle_increment;
-   laser.time_increment = msg->time_increment;
-   laser.scan_time = msg->scan_time;
-   laser.range_min = msg->range_min;
-   laser.range_max = msg->range_max;
-   laser.ranges = msg->ranges;
-   laser.intensities = msg->intensities;
-}
 
 void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
 {   
@@ -123,43 +103,29 @@ void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
     camera_sx.data = msg->data;
 }
 
-void groundTruth_callback(const nav_msgs::Odometry::ConstPtr& msg)
+void navCompensated_callback(const geometry_msgs::Point::ConstPtr& msg)
 {
-    /********************************************
-    *std_msgs/Header header                     *
-    *  uint32 seq                               *
-    *  time stamp                               *
-    *  string frame_id                          *
-    *string child_frame_id                      *
-    *geometry_msgs/PoseWithCovariance pose      *
-    *  geometry_msgs/Pose pose                  *
-    *    geometry_msgs/Point position           *
-    *      float64 x                            *
-    *      float64 y                            *
-    *      float64 z                            *
-    *    geometry_msgs/Quaternion orientation   *
-    *      float64 x                            *
-    *      float64 y                            *
-    *      float64 z                            *
-    *      float64 w                            *
-    *  float64[36] covariance                   *
-    *geometry_msgs/TwistWithCovariance twist    *
-    *  geometry_msgs/Twist twist                *
-    *    geometry_msgs/Vector3 linear           *
-    *      float64 x                            *
-    *      float64 y                            *
-    *      float64 z                            *
-    *    geometry_msgs/Vector3 angular          *
-    *      float64 x                            *
-    *      float64 y                            *
-    *      float64 z                            *
-    *  float64[36] covariance                   *
-    *********************************************/
+    nav_ned_compensated.x = msg->x;
+    nav_ned_compensated.y = msg->y;
+    nav_ned_compensated.z = msg->z;
+}
 
-    ground_truth.header = msg->header;
-    ground_truth.child_frame_id = msg->child_frame_id;
-    ground_truth.pose = msg->pose;
-    ground_truth.twist = msg->twist;
+void imu_callback(const marta_msgs::Imu::ConstPtr& msg)
+{
+    imu_obj.header = msg->header;
+    imu_obj.orientation = msg->orientation;
+    imu_obj.quaternion = msg->quaternion;
+    imu_obj.angular_rate = msg->angular_rate;
+    imu_obj.magnetic_field = msg->magnetic_field;
+    imu_obj.acceleration = msg->acceleration;
+    imu_obj.free_acceleration = msg->free_acceleration;
+}
+
+void altitude_callback(const marta_msgs::Altitude::ConstPtr& msg)
+{
+    altitude.header = msg->header;
+    altitude.altitude = msg->altitude;
+    altitude.validity = msg->validity;
 }
 
 int main(int argc, char **argv)
@@ -171,19 +137,12 @@ int main(int argc, char **argv)
     ros::Publisher pub_results = node_obj.advertise<visual_odometry::vo_results>("VO_results", 10);
     ros::Publisher pub_fail = node_obj.advertise<visual_odometry::fail_check>("VO_fail_check", 10);
     ros::Publisher pub_pcl = node_obj.advertise<sensor_msgs::PointCloud2>("/world_points", 10);
-
-    //Sub Objects
-	ros::Subscriber sub_laser=node_obj.subscribe("/zeno/laser", 1, laser_callback);
-
-    /*ros::Subscriber risulta meno efficente di image_transport.*/
-    //http://wiki.ros.org/compressed_image_transport
-
-    //image_transport::ImageTransport it(node_obj);
-    //image_transport::Subscriber sub_cameraSX = it.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
-    //image_transport::Subscriber sub_cameraDX = it.subscribe("/zeno/zeno/cameraright/camera_image/compressed", 1, cameraDX_callback);
     
-	ros::Subscriber sub_cameraSX=node_obj.subscribe("/zeno/zeno/cameraleft/camera_image/compressed", 1, cameraSX_callback);
-	ros::Subscriber sub_GT=node_obj.subscribe("/zeno/pose_gt", 1, groundTruth_callback);
+	ros::Subscriber sub_cameraSX = node_obj.subscribe("/pylon_camera/image_raw/compressed", 1, cameraSX_callback);
+
+    ros::Subscriber sub_NavNed = node_obj.subscribe("/nav_status_ned_compensated", 1, navCompensated_callback);
+    ros::Subscriber sub_IMU = node_obj.subscribe("/imu_compensated", 1, imu_callback);
+    ros::Subscriber sub_Altitude = node_obj.subscribe("/drivers/altitude", 1, altitude_callback);
 
 	ros::Rate loop_rate(FREQUENCY);	//10 Hz Prediction step
 
@@ -198,8 +157,8 @@ int main(int argc, char **argv)
     ROS_WARN("START!");
 
     /*INITIALIZATION*/
-    //ENU matrix rotation
-    Rbc = (Mat1d(3, 3) << 0, 0, 1, -1, 0, 0, 0, -1, 0); //{Camera} -> {Body}
+    //NED matrix rotation
+    Rbc = (Mat1d(3, 3) << 0, -1, 0, 1, 0, 0, 0, 0, 1); //{Camera} -> {Body}
 
     //Load Camera Intrinsic from Param Server
     getCameraParam(node_obj);
@@ -211,6 +170,9 @@ int main(int argc, char **argv)
     //Undistort Image
     Mat prev_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
     ros::Time prev_time = camera_sx.header.stamp;
+
+    //Aggiorno il GT da Imu e Nav_compensated
+    updateGT(nav_ned_compensated, imu_obj);
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
     //convert quaternion in Rotational Matrix
@@ -321,7 +283,7 @@ int main(int argc, char **argv)
         }
 
         //getLastAvaibleAltitude
-        float distance = laser.ranges[0]; //from MATLAB laser_msg{i, 1}.Ranges(1);
+        float distance = altitude.altitude;
         
         /*TRIANGULATE POINTS AND ESTIMATE SCALE FACTOR*/
         Mat world_points;
@@ -417,6 +379,34 @@ void getCameraParam(ros::NodeHandle node_obj)
     node_obj.getParam("/distortion_coefficient/radial/k2", k2);
     node_obj.getParam("/distortion_coefficient/tangential/p1", p1);
     node_obj.getParam("/distortion_coefficient/tangential/p2", p2);
+}
+
+void updateGT(geometry_msgs::Point posGT, marta_msgs::Imu imu)
+{
+    /*Position Ground Truth from nav_compensated*/
+    ground_truth.pose.pose.position = posGT;
+
+    /*Orientation and Twist Ground Truth from Imu*/
+    //Compute deltaT for Integration
+    ros::Duration integrationTime = imu.header.stamp - ground_truth.header.stamp;
+
+    //then update GT Header
+    ground_truth.header = imu.header;
+
+    //Quaternion
+    ground_truth.pose.pose.orientation.w = imu.quaternion.w;
+    ground_truth.pose.pose.orientation.x = imu.quaternion.x;
+    ground_truth.pose.pose.orientation.y = imu.quaternion.y;
+    ground_truth.pose.pose.orientation.z = imu.quaternion.z;
+
+    //Angular Rate
+    ground_truth.twist.twist.angular = imu.angular_rate;
+
+    //Linear Velocity: Integration of Acceleration
+    //v(k) = v(k-1) + T*a(k)
+    ground_truth.twist.twist.linear.x = ground_truth.twist.twist.linear.x + (integrationTime.toSec())*imu.acceleration.x;
+    ground_truth.twist.twist.linear.y = ground_truth.twist.twist.linear.y + (integrationTime.toSec())*imu.acceleration.y;
+    ground_truth.twist.twist.linear.z = ground_truth.twist.twist.linear.z + (integrationTime.toSec())*imu.acceleration.z;
 }
 
 visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT)

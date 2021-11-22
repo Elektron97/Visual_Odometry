@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   std_msgs
   pcl_ros
+  marta_msgs
 )
 
 find_package(OpenCV 4 REQUIRED) 
@@ -41,6 +42,7 @@ include_directories(
 
 add_executable(visual_Odometry src/visual_Odometry.cpp)
 add_dependencies(visual_Odometry visual_odometry_generate_messages_cpp)
+add_dependencies(visual_Odometry ${catkin_EXPORTED_TARGETS})
 target_link_libraries(visual_Odometry 
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES})
