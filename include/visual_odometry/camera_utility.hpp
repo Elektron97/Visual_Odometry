@@ -20,18 +20,6 @@ using namespace cv::xfeatures2d;
 enum rel_pose_method {ESSENTIAL, HOMOGRAPHY};
 
 /*CONSTANTS*/
-//Intrinsic Parameters
-const double fx = 407.0646129842357;
-const double fy = 407.0646129842357;
-const double ccxLeft = 384.5;
-const double ccyLeft = 246.5;
-
-//Distortion Coefficients
-const double k1 = 0.0;
-const double k2 = 0.0;
-const double p1 = 0.0;
-const double p2 = 0.0;
-
 //showImg utility
 const int fps = 33;
 bool showFrame = false;

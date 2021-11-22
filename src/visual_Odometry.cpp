@@ -48,6 +48,17 @@ enum fail_V0 {FAIL_DETECTION, NOT_MOVING, FAIL_RECOVER, SUCCESS};
 bool motion2D = false;   //If true -> Planar motion: [x y yaw]
 
 /*GLOBAL VARIABLES*/
+//Intrinsic Parameters
+double fx;
+double fy;
+double ccxLeft;
+double ccyLeft;
+
+//Distortion Coefficients
+double k1;
+double k2;
+double p1;
+double p2;
 
 Mat Rbc; //Rot. Matrix from {C} -> {B}
 
@@ -59,6 +70,7 @@ sensor_msgs::CompressedImage camera_sx;
 nav_msgs::Odometry ground_truth;
 
 //function declaration
+void getCameraParam(ros::NodeHandle node_obj);
 void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy);
 visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT);
 visual_odometry::fail_check publish_FailCheck(int fail_succ);
@@ -188,6 +200,9 @@ int main(int argc, char **argv)
     /*INITIALIZATION*/
     //ENU matrix rotation
     Rbc = (Mat1d(3, 3) << 0, 0, 1, -1, 0, 0, 0, -1, 0); //{Camera} -> {Body}
+
+    //Load Camera Intrinsic from Param Server
+    getCameraParam(node_obj);
 
     //Intrinsic Parameters
     Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
@@ -387,6 +402,21 @@ int main(int argc, char **argv)
     ROS_WARN("Video Finito!");
 
     return 0;
+}
+
+void getCameraParam(ros::NodeHandle node_obj)
+{
+    //Intrinsic Matrix
+    node_obj.getParam("/camera_intrinsic/fx", fx);
+    node_obj.getParam("/camera_intrinsic/fy", fy);
+    node_obj.getParam("/camera_intrinsic/ccxLeft", ccxLeft);
+    node_obj.getParam("/camera_intrinsic/ccyLeft", ccyLeft);
+
+    //Distortion Coefficients
+    node_obj.getParam("/distortion_coefficient/radial/k1", k1);
+    node_obj.getParam("/distortion_coefficient/radial/k2", k2);
+    node_obj.getParam("/distortion_coefficient/tangential/p1", p1);
+    node_obj.getParam("/distortion_coefficient/tangential/p2", p2);
 }
 
 visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT)

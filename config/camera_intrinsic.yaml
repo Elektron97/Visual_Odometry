@@ -5,13 +5,14 @@ camera_intrinsic:
   ccyLeft: 246.5
 
 distortion_coefficient:
-  k1: 0.0
-  k2: 0.0
-  p1: 0.0
-  p2: 0.0
+  radial:
+    k1: 0.0
+    k2: 0.0
+  tangential:
+    p1: 0.0
+    p2: 0.0
 
-SURF_coeff:
-  min_Hessian: 400
+
 
 
 

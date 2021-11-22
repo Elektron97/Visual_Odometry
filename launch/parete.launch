@@ -1,6 +1,9 @@
 <!--Launch per Visual Odometry-->
 <launch>
 
+<!-- Load Intrinsic Camera Parameters-->
+<rosparam file = "$(find visual_odometry)/config/camera_intrinsic.yaml"/>
+
 <!--Play bag files "parete"-->
 <node pkg="rosbag" type="play" name="player" args="--clock /home/daniele/bagfiles/parete_3.5m_AR.bag"/>
 
