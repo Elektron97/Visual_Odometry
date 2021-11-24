@@ -181,9 +181,6 @@ int main(int argc, char **argv)
     Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //{Body_k-1} -> {ENU}
     Mat orientation = orientation_body*Rbc; //{Camera_k-1} -> {ENU} 
     Mat location = pos2Mat(ground_truth.pose.pose.position); //trasl {ENU} -> {Body} in frame {ENU}
- 
-    //boolean variables for fail detection
-    bool fail_detection = false; //Quando il n° di features e' minore della tolleranza
 
     //Relative Orientation and Location
     Mat R = Mat::eye(3, 3, CV_64F); //{k-1} -> {k}
@@ -209,7 +206,7 @@ int main(int argc, char **argv)
         /*SHOW IMAGE FROM BAG FILE*/
         if(showFrame)
         {
-            namedWindow("Resized Image", cv::WINDOW_AUTOSIZE);
+            namedWindow("Resized Image", WINDOW_AUTOSIZE);
             imshow("Resized Image", desiredResize(ros2cv(camera_sx)));
             waitKey(fps);
         }
@@ -217,14 +214,19 @@ int main(int argc, char **argv)
         /*FEATURE MATCHING*/
         Mat curr_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
 
+        /*namedWindow("Undistorted Image", WINDOW_AUTOSIZE);
+        imshow("Undistorted Image", curr_img);
+        waitKey(fps);*/
+
         KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
 
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
 
-        fail_detection = checkMinFeat(kP_converted);
-        
-        if(fail_detection)
+        //ROS_INFO("N Key Point Matched");
+        //cout << kP_converted.Kpoints1.size() << endl;
+
+        if(checkMinFeat(kP_converted))
         {
             ROS_ERROR("Num. Features sotto il minimo. Skip Iteration!");
             visual_odometry::fail_check fail_msg = publish_FailCheck(FAIL_DETECTION);
