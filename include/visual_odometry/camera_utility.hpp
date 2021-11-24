@@ -27,7 +27,7 @@ const int desired_height = 410;
 //showImg utility
 const int fps = 33;
 bool showFrame = false;
-bool showMatch = false;
+bool showMatch = true;
 bool showInlier= false;
 
 /*Detect and Match parameters*/
@@ -139,22 +139,27 @@ Mat desiredResize(Mat img)
 
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 {
-    /*****Undistort Image************************ 
-    * Matlab: undistortImage(img, cameraParams) *
-    * Dato che hanno usato "cameraIntrinsic",   *
-    * Radial e Tang. Distortion = [0 0]         *
-    * Per default!                              *
-    ********************************************/
+    //PREPROCESSING IMAGE
+    //Resize
+    Mat resized_img = desiredResize(current_img);
 
-   Mat resized_img = desiredResize(current_img);
-
-    Mat gray_img;
-    cvtColor(resized_img, gray_img, COLOR_RGB2GRAY); //void cvtColor()
-
+    //Undistort
     Mat undistorted_image;
-    undistort(gray_img, undistorted_image, cameraMatrix, distortionCoeff);
-    return undistorted_image;
+    //undistort(resized_img, undistorted_image, cameraMatrix, distortionCoeff);
+    undistort(resized_img, undistorted_image, cameraMatrix, noArray());
 
+    //RGB2GRAY
+    Mat gray_img;
+    cvtColor(undistorted_image, gray_img, COLOR_RGB2GRAY); //void cvtColor()
+
+    //Color Correction: CLAHE Algorithm
+    Ptr<CLAHE> clahe = createCLAHE();
+    clahe->setClipLimit(4.0);
+
+    Mat preprocessed_img;
+    clahe->apply(gray_img, preprocessed_img);
+
+    return preprocessed_img;
 }
 
 KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)

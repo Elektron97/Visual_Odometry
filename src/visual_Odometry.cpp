@@ -214,17 +214,10 @@ int main(int argc, char **argv)
         /*FEATURE MATCHING*/
         Mat curr_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
 
-        /*namedWindow("Undistorted Image", WINDOW_AUTOSIZE);
-        imshow("Undistorted Image", curr_img);
-        waitKey(fps);*/
-
         KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
 
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
-
-        //ROS_INFO("N Key Point Matched");
-        //cout << kP_converted.Kpoints1.size() << endl;
 
         if(checkMinFeat(kP_converted))
         {
