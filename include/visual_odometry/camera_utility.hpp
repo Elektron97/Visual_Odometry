@@ -129,6 +129,8 @@ Mat desiredResize(Mat img)
         Mat resized_img;
         resize(img, resized_img, Size(desired_width, desired_height), INTER_LINEAR);
 
+        //Update cameraMatrix
+
         return resized_img;
     }
 
@@ -146,20 +148,23 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
     //Undistort
     Mat undistorted_image;
     //undistort(resized_img, undistorted_image, cameraMatrix, distortionCoeff);
+    //undistort(current_img, undistorted_image, cameraMatrix, distortionCoeff);
     undistort(resized_img, undistorted_image, cameraMatrix, noArray());
 
     //RGB2GRAY
     Mat gray_img;
-    cvtColor(undistorted_image, gray_img, COLOR_RGB2GRAY); //void cvtColor()
+    cvtColor(undistorted_image, gray_img, COLOR_RGB2GRAY);
 
-    //Color Correction: CLAHE Algorithm
+    return gray_img;
+
+    /*//Color Correction: CLAHE Algorithm
     Ptr<CLAHE> clahe = createCLAHE();
     clahe->setClipLimit(4.0);
 
     Mat preprocessed_img;
     clahe->apply(gray_img, preprocessed_img);
 
-    return preprocessed_img;
+    return preprocessed_img;*/
 }
 
 KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)

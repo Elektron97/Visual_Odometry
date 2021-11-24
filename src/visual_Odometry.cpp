@@ -224,6 +224,8 @@ int main(int argc, char **argv)
             ROS_ERROR("Num. Features sotto il minimo. Skip Iteration!");
             visual_odometry::fail_check fail_msg = publish_FailCheck(FAIL_DETECTION);
             pub_fail.publish(fail_msg);
+
+            //prev_img = curr_img; 
             continue;
         }      
 

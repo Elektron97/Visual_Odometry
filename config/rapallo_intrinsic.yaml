@@ -11,3 +11,7 @@ distortion_coefficient:
   tangential:
     p1: 0.003116440379070
     p2: -0.005548904686578
+
+Original_Size:
+  width: 2592
+  height: 2048
