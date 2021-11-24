@@ -209,12 +209,10 @@ int main(int argc, char **argv)
         /*SHOW IMAGE FROM BAG FILE*/
         if(showFrame)
         {
-            namedWindow("Image", cv::WINDOW_AUTOSIZE);
-            imshow("Image", ros2cv(camera_sx));
+            namedWindow("Resized Image", cv::WINDOW_AUTOSIZE);
+            imshow("Resized Image", desiredResize(ros2cv(camera_sx)));
             waitKey(fps);
         }
-
-        cout << camera_sx.header.seq << endl;
 
         /*FEATURE MATCHING*/
         Mat curr_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);

@@ -20,6 +20,10 @@ using namespace cv::xfeatures2d;
 enum rel_pose_method {ESSENTIAL, HOMOGRAPHY};
 
 /*CONSTANTS*/
+//Desired Size
+const int desired_width = 640;
+const int desired_height = 410;
+
 //showImg utility
 const int fps = 33;
 bool showFrame = false;
@@ -75,8 +79,11 @@ struct RelativePose
 
 /*FUNCTIONS*/
 /*********Declaration**********/
-//Detect and Match Features
+//Preprocessing
+Mat desiredResize(Mat img);
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
+
+//Detect and Match Features
 KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2);
 
 //Structs Interface
@@ -111,6 +118,25 @@ int recoverPoseHomography(Mat H, KpAsPoint2f_Match inlier, Mat cameraMatrix, Mat
 
 /*********Source**********/
 
+Mat desiredResize(Mat img)
+{
+    //Check if the img is in the desired size
+    int original_width = img.cols;
+    int original_height = img.rows;
+
+    if( (original_width != desired_width) || (original_height != desired_height) )
+    {
+        Mat resized_img;
+        resize(img, resized_img, Size(desired_width, desired_height), INTER_LINEAR);
+
+        return resized_img;
+    }
+
+    else
+        return img;
+
+}
+
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 {
     /*****Undistort Image************************ 
@@ -120,8 +146,10 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
     * Per default!                              *
     ********************************************/
 
+   Mat resized_img = desiredResize(current_img);
+
     Mat gray_img;
-    cvtColor(current_img, gray_img, COLOR_RGB2GRAY); //void cvtColor()
+    cvtColor(resized_img, gray_img, COLOR_RGB2GRAY); //void cvtColor()
 
     Mat undistorted_image;
     undistort(gray_img, undistorted_image, cameraMatrix, distortionCoeff);
