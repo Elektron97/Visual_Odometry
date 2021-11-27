@@ -153,6 +153,8 @@ Mat desiredResize(Mat img, Mat& cameraMatrix)
         double ratio = (double) original_width/desired_width;
         cameraMatrix = cameraMatrix/ratio;
 
+        cameraMatrix.at<double>(2, 2) = 1;
+
         return resized_img;
     }
 

@@ -143,11 +143,11 @@ int main(int argc, char **argv)
     ros::Publisher pub_fail = node_obj.advertise<visual_odometry::fail_check>("VO_fail_check", 10);
     ros::Publisher pub_pcl = node_obj.advertise<sensor_msgs::PointCloud2>("/world_points", 10);
     
-	ros::Subscriber sub_cameraSX = node_obj.subscribe("/pylon_camera/image_raw/compressed", 1, cameraSX_callback);
+	ros::Subscriber sub_cameraSX = node_obj.subscribe("/pylon_camera/image_raw/compressed", 10, cameraSX_callback);
 
-    ros::Subscriber sub_NavNed = node_obj.subscribe("/nav_status_ned_compensated", 1, navCompensated_callback);
-    ros::Subscriber sub_IMU = node_obj.subscribe("/imu_compensated", 1, imu_callback);
-    ros::Subscriber sub_Altitude = node_obj.subscribe("/drivers/altitude", 1, altitude_callback);
+    ros::Subscriber sub_NavNed = node_obj.subscribe("/nav_status_ned_compensated", 10, navCompensated_callback);
+    ros::Subscriber sub_IMU = node_obj.subscribe("/imu_compensated", 10, imu_callback);
+    ros::Subscriber sub_Altitude = node_obj.subscribe("/drivers/altitude", 10, altitude_callback);
 
 	ros::Rate loop_rate(FREQUENCY);	//10 Hz Prediction step
 
@@ -173,12 +173,11 @@ int main(int argc, char **argv)
     Mat distortionCoeff = (Mat1d(1, 4) << k1, k2, p1, p2);
 
     /*PREPROCESSING*/
-    /*//Overload for init: Update cameraMatrix
+    //Overload for init: Update cameraMatrix
     Mat resized_img = desiredResize(ros2cv(camera_sx), cameraMatrix);
     //rgb2gray - Undistort Image - CLAHE
-    Mat prev_img = get_image(resized_img, cameraMatrix, distortionCoeff);*/
+    Mat prev_img = get_image(resized_img, cameraMatrix, distortionCoeff);
 
-    Mat prev_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
     ros::Time prev_time = camera_sx.header.stamp;
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
