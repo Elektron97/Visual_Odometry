@@ -172,8 +172,11 @@ int main(int argc, char **argv)
     Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
     Mat distortionCoeff = (Mat1d(1, 4) << k1, k2, p1, p2);
 
-    //Undistort Image
-    Mat prev_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
+    /*PREPROCESSING*/
+    //Overload for init: Update cameraMatrix
+    Mat resized_img = desiredResize(ros2cv(camera_sx), cameraMatrix);
+    //rgb2gray - Undistort Image - CLAHE
+    Mat prev_img = get_image(resized_img, cameraMatrix, distortionCoeff);
     ros::Time prev_time = camera_sx.header.stamp;
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
@@ -211,9 +214,10 @@ int main(int argc, char **argv)
             waitKey(fps);
         }
 
-        /*FEATURE MATCHING*/
+        /*PREPROCESSING*/
         Mat curr_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
 
+        /*DETECT AND MATCH FEATURES*/
         KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
 
         /*POSE ESTIMATION*/
@@ -225,7 +229,7 @@ int main(int argc, char **argv)
             visual_odometry::fail_check fail_msg = publish_FailCheck(FAIL_DETECTION);
             pub_fail.publish(fail_msg);
 
-            //prev_img = curr_img; 
+            prev_img = curr_img; 
             continue;
         }      
 

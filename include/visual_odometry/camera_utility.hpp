@@ -81,6 +81,7 @@ struct RelativePose
 /*********Declaration**********/
 //Preprocessing
 Mat desiredResize(Mat img);
+Mat desiredResize(Mat img, Mat& cameraMatrix);
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
 
 //Detect and Match Features
@@ -129,8 +130,6 @@ Mat desiredResize(Mat img)
         Mat resized_img;
         resize(img, resized_img, Size(desired_width, desired_height), INTER_LINEAR);
 
-        //Update cameraMatrix
-
         return resized_img;
     }
 
@@ -139,6 +138,29 @@ Mat desiredResize(Mat img)
 
 }
 
+Mat desiredResize(Mat img, Mat& cameraMatrix)
+{
+    //Check if the img is in the desired size
+    int original_width = img.cols;
+    int original_height = img.rows;
+
+    if( (original_width != desired_width) || (original_height != desired_height) )
+    {
+        Mat resized_img;
+        resize(img, resized_img, Size(desired_width, desired_height), INTER_LINEAR);
+
+        //Update Camera Matrix
+        double ratio = (double) original_width/desired_width;
+        cameraMatrix = cameraMatrix/ratio;
+
+        return resized_img;
+    }
+
+    else
+        return img;
+
+}        
+        
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 {
     //PREPROCESSING IMAGE
@@ -147,9 +169,8 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 
     //Undistort
     Mat undistorted_image;
-    //undistort(resized_img, undistorted_image, cameraMatrix, distortionCoeff);
-    //undistort(current_img, undistorted_image, cameraMatrix, distortionCoeff);
-    undistort(resized_img, undistorted_image, cameraMatrix, noArray());
+    undistort(resized_img, undistorted_image, cameraMatrix, distortionCoeff);
+    //undistort(resized_img, undistorted_image, cameraMatrix, noArray());
 
     //RGB2GRAY
     Mat gray_img;
