@@ -169,8 +169,8 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 
     //Undistort
     Mat undistorted_image;
-    undistort(resized_img, undistorted_image, cameraMatrix, distortionCoeff);
-    //undistort(resized_img, undistorted_image, cameraMatrix, noArray());
+    //undistort(resized_img, undistorted_image, cameraMatrix, distortionCoeff);
+    undistort(resized_img, undistorted_image, cameraMatrix, noArray());
 
     //RGB2GRAY
     Mat gray_img;

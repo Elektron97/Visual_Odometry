@@ -173,10 +173,12 @@ int main(int argc, char **argv)
     Mat distortionCoeff = (Mat1d(1, 4) << k1, k2, p1, p2);
 
     /*PREPROCESSING*/
-    //Overload for init: Update cameraMatrix
+    /*//Overload for init: Update cameraMatrix
     Mat resized_img = desiredResize(ros2cv(camera_sx), cameraMatrix);
     //rgb2gray - Undistort Image - CLAHE
-    Mat prev_img = get_image(resized_img, cameraMatrix, distortionCoeff);
+    Mat prev_img = get_image(resized_img, cameraMatrix, distortionCoeff);*/
+
+    Mat prev_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
     ros::Time prev_time = camera_sx.header.stamp;
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
