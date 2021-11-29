@@ -180,19 +180,19 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
     Mat gray_img;
     cvtColor(undistorted_image, gray_img, COLOR_RGB2GRAY);
 
-    return gray_img;
+    //return gray_img;
 
     //Test Clahe Cinese
-    //return claheGO(gray_img, 4);
+    //return claheGO(gray_img, 8);
 
-    /*//Color Correction: CLAHE Algorithm
+    //Color Correction: CLAHE Algorithm
     Ptr<CLAHE> clahe = createCLAHE();
-    clahe->setClipLimit(4.0);
+    clahe->setClipLimit(4);
 
     Mat preprocessed_img;
     clahe->apply(gray_img, preprocessed_img);
 
-    return preprocessed_img;*/
+    return preprocessed_img;
 }
 
 KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
