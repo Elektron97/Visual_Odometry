@@ -121,19 +121,7 @@ Il comando `recoverPose()` prende in input la matrice essentiale, i KeyPoints, l
 
 ## 7) visual_odometry pkg
 
-### 7.1) Istruzioni per la compilazione e l'esecuzione del pkg
-
-Per la compilazione e l'esecuzione del pkg, sono necessari i seguenti prerequisiti:
-- ROS Melodic (Ubuntu 18.04).
-- `vision_opencv`: Permette l'interfaccia tra OpenCV e ROS.
-- OpenCV.
-- `opencv_contrib` (Necessario per usare l'algoritmo SURF).
-
 #### Guida per l'installazione di OpenCV e opencv_contrib:
-**SOLUZIONE NON DEFINITVA**: Alla fine dell'esecuzione del nodo, va in errore, essendoci un conflitto tra OpenCV usato da `cv_bridge` (3.2.0, default in ROS Melodic) e OpenCV 4 usato per `xfeatures2d`.
-Bisogna trovare un'altra soluzione, ma al momento va bene per lavorare sul codice.
-La soluzione è presa da questo [link](https://answers.ros.org/question/312669/ros-melodic-opencv-xfeatures2d/).
-
 Per l'installazione di OpenCV 4 con opencv_contrib, digitare nel terminale:
 
 ```
@@ -177,6 +165,14 @@ Disinstallare OpenCV:
 
 ```
 sudo rm /usr/local/{bin,lib}/*opencv* 
+```
+
+E' necessario inoltre avere il codice sorgente di `vision_opencv` ed in particolare di `cv_bridge`. Infatti, le librerie di OpenCV 4 e quella interna a ROS andrebbero in conflitto. Per risolvere questo problema, si installa un particolare `vision_opencv`, in questo modo:
+
+```
+cd ~/catkin_ws/src
+git clone https://github.com/fizyr-forks/vision_opencv/tree/opencv4
+git checkout opencv4
 ```
 
 ### 7.2) Struttura del pkg
