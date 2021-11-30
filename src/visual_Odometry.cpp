@@ -41,6 +41,7 @@
 /*DEFINE*/
 #define FIRST_IMAGE 1
 #define FREQUENCY 10
+#define QUEUE_SIZE 1
 
 /*NAMESPACE*/
 using namespace std;
@@ -143,13 +144,13 @@ int main(int argc, char **argv)
     ros::Publisher pub_fail = node_obj.advertise<visual_odometry::fail_check>("VO_fail_check", 10);
     ros::Publisher pub_pcl = node_obj.advertise<sensor_msgs::PointCloud2>("/world_points", 10);
     
-	ros::Subscriber sub_cameraSX = node_obj.subscribe("/pylon_camera/image_raw/compressed", 10, cameraSX_callback);
+	ros::Subscriber sub_cameraSX = node_obj.subscribe("/pylon_camera/image_raw/compressed", QUEUE_SIZE, cameraSX_callback);
 
-    ros::Subscriber sub_NavNed = node_obj.subscribe("/nav_status_ned_compensated", 10, navCompensated_callback);
-    ros::Subscriber sub_IMU = node_obj.subscribe("/imu_compensated", 10, imu_callback);
-    ros::Subscriber sub_Altitude = node_obj.subscribe("/drivers/altitude", 10, altitude_callback);
+    ros::Subscriber sub_NavNed = node_obj.subscribe("/nav_status_ned_compensated", QUEUE_SIZE, navCompensated_callback);
+    ros::Subscriber sub_IMU = node_obj.subscribe("/imu_compensated", QUEUE_SIZE, imu_callback);
+    ros::Subscriber sub_Altitude = node_obj.subscribe("/drivers/altitude", QUEUE_SIZE, altitude_callback);
 
-	ros::Rate loop_rate(FREQUENCY);	//10 Hz Prediction step
+	ros::Rate loop_rate(FREQUENCY);
 
     /*Aspetto la FIRST_IMAGE*/
     ROS_INFO("Waiting %d-th frame...", FIRST_IMAGE);
@@ -230,7 +231,7 @@ int main(int argc, char **argv)
             visual_odometry::fail_check fail_msg = publish_FailCheck(FAIL_DETECTION);
             pub_fail.publish(fail_msg);
 
-            prev_img = curr_img; 
+            prev_img = curr_img;
             continue;
         }      
 
