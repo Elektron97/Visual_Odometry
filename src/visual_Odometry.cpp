@@ -84,7 +84,10 @@ geometry_msgs::Point nav_ned_compensated;
 marta_msgs::Altitude altitude;
 marta_msgs::Imu imu_obj;
 
+//Computational Efficient
 stack<clock_t> tictoc_stack;
+bool tic_toc = false;
+
 
 /*FUNCTION DECLARATION*/
 void getCameraParam(ros::NodeHandle node_obj);
@@ -96,6 +99,7 @@ visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat
 visual_odometry::fail_check publish_FailCheck(int fail_succ);
 void tic();
 void toc();
+void toc(string name_function);
 
 /*CALLBACK*/
 void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
@@ -213,12 +217,13 @@ int main(int argc, char **argv)
 
     int fail_succ; //Check fail state
 
-    time_t tstart, tend; 
-
     /*ITERATIONS*/
     while(ros::ok())
     {
-        tic();
+        if(tic_toc)
+            tic();
+
+
         ros::spinOnce();    //Read Sensor Data
         loop_rate.sleep();
 
@@ -231,10 +236,14 @@ int main(int argc, char **argv)
         }
 
         /*PREPROCESSING*/
+        tic();
         Mat curr_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
+        toc("Preprocessing");
 
         /*DETECT AND MATCH FEATURES*/
+        tic();
         KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
+        toc("Detect and Match Features");
 
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
@@ -245,7 +254,9 @@ int main(int argc, char **argv)
             visual_odometry::fail_check fail_msg = publish_FailCheck(FAIL_DETECTION);
             pub_fail.publish(fail_msg);
 
-            toc();
+            if(tic_toc)
+                toc();
+            
             prev_img = curr_img;
             continue;
         }      
@@ -255,17 +266,23 @@ int main(int argc, char **argv)
             ROS_WARN("Robot is not moving! Skip Iteration!");
             visual_odometry::fail_check fail_msg = publish_FailCheck(NOT_MOVING);
             pub_fail.publish(fail_msg);
-            toc();
+            
+            if(tic_toc)
+                toc();
+
             continue;
         } 
 
         else
             ROS_INFO("Robot is moving! Estimating pose...");
 
-
+        tic();
         RelativePose rel_pose = estimateRelativePose(kP_converted, cameraMatrix);
+        toc("Relative Pose");
 
+        tic();
         KpAsPoint2f_Match inlier_converted = rel_pose.inlier_points;
+        toc("Extract Inlier");
 
         show_inlier(inlier_converted, prev_img, curr_img); //if showInlier == true 
 
@@ -321,7 +338,7 @@ int main(int argc, char **argv)
 
         //else
             //SF_k == SF_k-1;
-
+        tic();
         /*ABSOLUTE POSE*/
         if(rel_pose.success)
         {
@@ -339,6 +356,7 @@ int main(int argc, char **argv)
             location = absPose[0];      //[t_w,k]^W
             orientation = absPose[1];   //R_wk ({k} -> {W})
         }
+        toc("Absolute Pose");
 
         if(motion2D)
             location.at<double>(2) = ground_truth.pose.pose.position.z; //uso il GT per la profondita'
@@ -382,7 +400,8 @@ int main(int argc, char **argv)
         prev_img = curr_img; 
         prev_time = curr_time;
 
-        toc();
+        if(tic_toc)
+            toc();
     }
     ROS_WARN("Video Finito!");
 
@@ -559,6 +578,14 @@ void tic()
 void toc() 
 {
     std::cout << "Time elapsed: "
+              << ((double)(clock() - tictoc_stack.top())) / CLOCKS_PER_SEC
+              << std::endl;
+    tictoc_stack.pop();
+}
+
+void toc(string name_function)
+{
+    std::cout << name_function + "\t" + "Time elapsed: "
               << ((double)(clock() - tictoc_stack.top())) / CLOCKS_PER_SEC
               << std::endl;
     tictoc_stack.pop();
