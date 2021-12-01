@@ -15,6 +15,11 @@
 *****************************************************************************************************************/
 
 /*INCLUDE*/
+//Library for tic and toc
+#include <ctime>
+#include <iostream>
+#include <stack>
+
 //library
 #include "ros/ros.h"
 
@@ -79,7 +84,9 @@ geometry_msgs::Point nav_ned_compensated;
 marta_msgs::Altitude altitude;
 marta_msgs::Imu imu_obj;
 
-//function declaration
+stack<clock_t> tictoc_stack;
+
+/*FUNCTION DECLARATION*/
 void getCameraParam(ros::NodeHandle node_obj);
 void updateGT(geometry_msgs::Point posGT);
 void updateGT(marta_msgs::Imu imu);
@@ -87,6 +94,8 @@ void updateGT(marta_msgs::Imu imu);
 void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy);
 visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT);
 visual_odometry::fail_check publish_FailCheck(int fail_succ);
+void tic();
+void toc();
 
 /*CALLBACK*/
 void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
@@ -154,8 +163,10 @@ int main(int argc, char **argv)
 
     /*Aspetto la FIRST_IMAGE*/
     ROS_INFO("Waiting %d-th frame...", FIRST_IMAGE);
-    
-    while(camera_sx.header.seq <= FIRST_IMAGE ) //aspetto le prime immagini
+
+    ros::spinOnce();
+
+    while(camera_sx.header.seq <= FIRST_IMAGE) //aspetto le prime immagini
     {
         ros::spinOnce();
     }
@@ -202,9 +213,12 @@ int main(int argc, char **argv)
 
     int fail_succ; //Check fail state
 
+    time_t tstart, tend; 
+
     /*ITERATIONS*/
     while(ros::ok())
     {
+        tic();
         ros::spinOnce();    //Read Sensor Data
         loop_rate.sleep();
 
@@ -231,6 +245,7 @@ int main(int argc, char **argv)
             visual_odometry::fail_check fail_msg = publish_FailCheck(FAIL_DETECTION);
             pub_fail.publish(fail_msg);
 
+            toc();
             prev_img = curr_img;
             continue;
         }      
@@ -240,6 +255,7 @@ int main(int argc, char **argv)
             ROS_WARN("Robot is not moving! Skip Iteration!");
             visual_odometry::fail_check fail_msg = publish_FailCheck(NOT_MOVING);
             pub_fail.publish(fail_msg);
+            toc();
             continue;
         } 
 
@@ -365,6 +381,8 @@ int main(int argc, char **argv)
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 
         prev_time = curr_time;
+
+        toc();
     }
     ROS_WARN("Video Finito!");
 
@@ -531,4 +549,17 @@ void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 
     ROS_INFO("Estimate Position:        [x:     %f, \t y:      %f, \t z:   %f]", estimate_pos.x, estimate_pos.y, estimate_pos.z);
     ROS_INFO("Estimate RPY:             [roll:  %f, \t pitch:  %f, \t yaw: %f ]", estimate_rpy.x, estimate_rpy.y, estimate_rpy.z);
     ROS_INFO("-----------------------------------------------------------------------------------------");
+}
+
+void tic() 
+{
+    tictoc_stack.push(clock());
+}
+
+void toc() 
+{
+    std::cout << "Time elapsed: "
+              << ((double)(clock() - tictoc_stack.top())) / CLOCKS_PER_SEC
+              << std::endl;
+    tictoc_stack.pop();
 }

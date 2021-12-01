@@ -27,15 +27,20 @@ const int desired_height = 410;
 //showImg utility
 const int fps = 33;
 bool showFrame = false;
-bool showMatch = true;
+bool showMatch = false;
 bool showInlier= false;
 
 /*Detect and Match parameters*/
 //SURF parameters
-int minHessian = 85; 
+int minHessian = 50; 
+
+int nOctaves = 4;
+int nOctaveLayers = 3;
+bool extended = false;
+bool upright = false;
 
 //LOWE threshold
-const float ratio_thresh = 0.7f;
+const float ratio_thresh = 0.7f; //0.7f;
 
 /*Relative Pose parameters*/
 //Valid Point Fraction Threshold
@@ -198,7 +203,8 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
 {
     //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
-    Ptr<SURF> detector = SURF::create( minHessian );
+    //Ptr<SURF> detector = SURF::create( minHessian);
+    Ptr<SURF> detector = SURF::create( minHessian, nOctaves, nOctaveLayers, extended, upright);
     vector<KeyPoint> keypoints1, keypoints2;
     Mat descriptors1, descriptors2;
     detector->detectAndCompute( img1, noArray(), keypoints1, descriptors1 );
