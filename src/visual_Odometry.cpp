@@ -241,7 +241,7 @@ int main(int argc, char **argv)
 
 
         ros::spinOnce();    //Read Sensor Data
-        loop_rate.sleep();
+        
 
         /*SHOW IMAGE FROM BAG FILE*/
         if(showFrame)
@@ -261,18 +261,12 @@ int main(int argc, char **argv)
         KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
         toc("Detect and Match Features");
 
-        ROS_INFO("Before Matching");
         cout << detect_match.Kpoints1.size() << endl;
         cout << detect_match.Kpoints2.size() << endl;
         cout << detect_match.match.size() << endl;
 
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
-
-        ROS_INFO("After Matching");
-        cout << kP_converted.Kpoints1.size() << endl;
-        cout << kP_converted.Kpoints2.size() << endl;
-        cout << kP_converted.match.size() << endl;
 
         if(checkMinFeat(kP_converted))
         {
@@ -426,6 +420,8 @@ int main(int argc, char **argv)
         /*UPDATE PREV DATA*/
         prev_img = curr_img; 
         prev_time = curr_time;
+
+        loop_rate.sleep();
 
         if(tic_toc)
             toc();

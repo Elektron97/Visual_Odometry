@@ -10,6 +10,7 @@
 /*DEFINE*/
 #define DISTANCE 20.0
 #define MIN_NUM_FEATURES 20.0
+#define CLIP_LIMIT 16
 
 /*NAMESPACES*/
 using namespace std;
@@ -21,18 +22,19 @@ enum rel_pose_method {ESSENTIAL, HOMOGRAPHY};
 
 /*CONSTANTS*/
 //Desired Size
-const int desired_width = 640;
-const int desired_height = 410;
+const int desired_width = 324; //648;
+const int desired_height = 256; //512;
 
 //showImg utility
 const int fps = 33;
 bool showFrame = false;
+bool showPrep = false;
 bool showMatch = false;
-bool showInlier= false;
+bool showInlier= true;
 
 /*Detect and Match parameters*/
 //SURF parameters
-int minHessian = 50; 
+int minHessian = 50;
 
 int nOctaves = 4;
 int nOctaveLayers = 3;
@@ -176,8 +178,8 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 
     //Undistort
     Mat undistorted_image;
-    //undistort(resized_img, undistorted_image, cameraMatrix, distortionCoeff);
-    undistort(resized_img, undistorted_image, cameraMatrix, noArray());
+    undistort(resized_img, undistorted_image, cameraMatrix, distortionCoeff);
+    //undistort(resized_img, undistorted_image, cameraMatrix, noArray());
 
     //RGB2GRAY
     Mat gray_img;
@@ -187,10 +189,17 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 
     //Color Correction: CLAHE Algorithm
     Ptr<CLAHE> clahe = createCLAHE();
-    clahe->setClipLimit(4);
+    clahe->setClipLimit(CLIP_LIMIT);
 
     Mat preprocessed_img;
     clahe->apply(gray_img, preprocessed_img);
+
+    if(showPrep)
+    {
+        namedWindow("Preprocessed Image", WINDOW_AUTOSIZE);
+        imshow("Preprocessed Image", preprocessed_img);
+        waitKey(fps);
+    }
 
     return preprocessed_img;
 }
@@ -198,8 +207,8 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
 {
     //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
-    Ptr<SURF> detector = SURF::create( minHessian);
-    //Ptr<SURF> detector = SURF::create( minHessian, nOctaves, nOctaveLayers, extended, upright);
+    //Ptr<SURF> detector = SURF::create( minHessian);
+    Ptr<SURF> detector = SURF::create( minHessian, nOctaves, nOctaveLayers, extended, upright);
     vector<KeyPoint> keypoints1, keypoints2;
     Mat descriptors1, descriptors2;
     detector->detectAndCompute( img1, noArray(), keypoints1, descriptors1 );
@@ -213,7 +222,7 @@ KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
     matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2);
 
     //-- Filter matches using the Lowe's ratio test
-    //default ratio_thresh = 0.7f; 
+    //Default ratio_thresh: 0.7f; 
     vector<DMatch> matches;
     for (size_t i = 0; i < knn_matches.size(); i++)
     {
@@ -222,6 +231,11 @@ KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
             matches.push_back(knn_matches[i][0]);
         }
     }
+
+    /*//Using BruteForce Descriptor Matcher
+    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
+    vector< DMatch > matches;
+    matcher->match( descriptors1, descriptors2, matches);*/
 
     if(showMatch)
     {
@@ -642,6 +656,8 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
             }
 
             double inlierCount = RANSAC_mask.size() - outlierCount;
+
+            //show_info(outlierCount, inlierCount, kP_converted.Kpoints1.size());
 
             if((inlierCount/RANSAC_mask.size()) < 0.3)
             {
