@@ -185,9 +185,6 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 
     //return gray_img;
 
-    //Test Clahe Cinese
-    //return claheGO(gray_img, 8);
-
     //Color Correction: CLAHE Algorithm
     Ptr<CLAHE> clahe = createCLAHE();
     clahe->setClipLimit(4);
@@ -201,8 +198,8 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
 {
     //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
-    //Ptr<SURF> detector = SURF::create( minHessian);
-    Ptr<SURF> detector = SURF::create( minHessian, nOctaves, nOctaveLayers, extended, upright);
+    Ptr<SURF> detector = SURF::create( minHessian);
+    //Ptr<SURF> detector = SURF::create( minHessian, nOctaves, nOctaveLayers, extended, upright);
     vector<KeyPoint> keypoints1, keypoints2;
     Mat descriptors1, descriptors2;
     detector->detectAndCompute( img1, noArray(), keypoints1, descriptors1 );
@@ -216,7 +213,7 @@ KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
     matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2);
 
     //-- Filter matches using the Lowe's ratio test
-    //const float ratio_thresh = 0.7f; 
+    //default ratio_thresh = 0.7f; 
     vector<DMatch> matches;
     for (size_t i = 0; i < knn_matches.size(); i++)
     {
@@ -225,12 +222,6 @@ KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
             matches.push_back(knn_matches[i][0]);
         }
     }
-
-    /*OLD METHOD: n matches == n keypoints1*/
-
-    /*Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
-    vector< DMatch > matches;
-    matcher->match( descriptors1, descriptors2, matches);*/
 
     if(showMatch)
     {

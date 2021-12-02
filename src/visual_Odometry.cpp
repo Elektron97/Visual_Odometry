@@ -38,6 +38,7 @@
 //marta_msgs
 #include "marta_msgs/Altitude.h"
 #include "marta_msgs/Imu.h"
+#include "marta_msgs/Dvl.h"
 
 //custom msg
 #include "visual_odometry/vo_results.h"
@@ -83,6 +84,7 @@ nav_msgs::Odometry ground_truth;
 geometry_msgs::Point nav_ned_compensated;
 marta_msgs::Altitude altitude;
 marta_msgs::Imu imu_obj;
+marta_msgs::Dvl dvl_obj;
 
 //Computational Efficient
 stack<clock_t> tictoc_stack;
@@ -147,6 +149,19 @@ void altitude_callback(const marta_msgs::Altitude::ConstPtr& msg)
     altitude.validity = msg->validity;
 }
 
+void dvl_callback(const marta_msgs::Dvl::ConstPtr& msg)
+{
+    dvl_obj.header = msg->header;
+    dvl_obj.good_or_bad = msg->good_or_bad;
+    dvl_obj.orientation = msg->orientation;
+    dvl_obj.salinity = msg->salinity;
+    dvl_obj.sound_speed = msg->sound_speed;
+    dvl_obj.velocity_earth = msg->velocity_earth;
+    dvl_obj.velocity_earth_flag = msg->velocity_earth_flag;
+    dvl_obj.velocity_instrument = msg->velocity_instrument;
+    dvl_obj.velocity_instrument_flag = msg->velocity_instrument_flag;
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "visual_Odometry");
@@ -157,18 +172,19 @@ int main(int argc, char **argv)
     ros::Publisher pub_fail = node_obj.advertise<visual_odometry::fail_check>("VO_fail_check", 10);
     ros::Publisher pub_pcl = node_obj.advertise<sensor_msgs::PointCloud2>("/world_points", 10);
     
+    //Camera Topic
 	ros::Subscriber sub_cameraSX = node_obj.subscribe("/pylon_camera/image_raw/compressed", QUEUE_SIZE, cameraSX_callback);
 
+    //Ground Truth Topics
     ros::Subscriber sub_NavNed = node_obj.subscribe("/nav_status_ned_compensated", QUEUE_SIZE, navCompensated_callback);
     ros::Subscriber sub_IMU = node_obj.subscribe("/imu_compensated", QUEUE_SIZE, imu_callback);
     ros::Subscriber sub_Altitude = node_obj.subscribe("/drivers/altitude", QUEUE_SIZE, altitude_callback);
+    ros::Subscriber sub_Dvl = node_obj.subscribe("/drivers/Dvl", QUEUE_SIZE, dvl_callback);
 
 	ros::Rate loop_rate(FREQUENCY);
 
     /*Aspetto la FIRST_IMAGE*/
     ROS_INFO("Waiting %d-th frame...", FIRST_IMAGE);
-
-    ros::spinOnce();
 
     while(camera_sx.header.seq <= FIRST_IMAGE) //aspetto le prime immagini
     {
@@ -245,8 +261,18 @@ int main(int argc, char **argv)
         KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
         toc("Detect and Match Features");
 
+        ROS_INFO("Before Matching");
+        cout << detect_match.Kpoints1.size() << endl;
+        cout << detect_match.Kpoints2.size() << endl;
+        cout << detect_match.match.size() << endl;
+
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
+
+        ROS_INFO("After Matching");
+        cout << kP_converted.Kpoints1.size() << endl;
+        cout << kP_converted.Kpoints2.size() << endl;
+        cout << kP_converted.match.size() << endl;
 
         if(checkMinFeat(kP_converted))
         {
@@ -338,6 +364,7 @@ int main(int argc, char **argv)
 
         //else
             //SF_k == SF_k-1;
+        
         tic();
         /*ABSOLUTE POSE*/
         if(rel_pose.success)
@@ -453,34 +480,6 @@ void updateGT(marta_msgs::Imu imu)
     ground_truth.twist.twist.linear.y = ground_truth.twist.twist.linear.y + (integrationTime.toSec())*imu.acceleration.y;
     ground_truth.twist.twist.linear.z = ground_truth.twist.twist.linear.z + (integrationTime.toSec())*imu.acceleration.z;
 }
-
-/*void updateGT(geometry_msgs::Point posGT, marta_msgs::Imu imu)
-{
-    //Position Ground Truth from nav_compensated
-    ground_truth.pose.pose.position = posGT;
-
-    //Orientation and Twist Ground Truth from Imu
-    //Compute deltaT for Integration
-    ros::Duration integrationTime = imu.header.stamp - ground_truth.header.stamp;
-
-    //then update GT Header
-    ground_truth.header = imu.header;
-
-    //Quaternion
-    ground_truth.pose.pose.orientation.w = imu.quaternion.w;
-    ground_truth.pose.pose.orientation.x = imu.quaternion.x;
-    ground_truth.pose.pose.orientation.y = imu.quaternion.y;
-    ground_truth.pose.pose.orientation.z = imu.quaternion.z;
-
-    //Angular Rate
-    ground_truth.twist.twist.angular = imu.angular_rate;
-
-    //Linear Velocity: Integration of Acceleration
-    //v(k) = v(k-1) + T*a(k)
-    ground_truth.twist.twist.linear.x = ground_truth.twist.twist.linear.x + (integrationTime.toSec())*imu.acceleration.x;
-    ground_truth.twist.twist.linear.y = ground_truth.twist.twist.linear.y + (integrationTime.toSec())*imu.acceleration.y;
-    ground_truth.twist.twist.linear.z = ground_truth.twist.twist.linear.z + (integrationTime.toSec())*imu.acceleration.z;
-}*/
 
 visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT)
 {
