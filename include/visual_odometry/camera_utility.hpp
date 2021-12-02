@@ -10,7 +10,7 @@
 /*DEFINE*/
 #define DISTANCE 20.0
 #define MIN_NUM_FEATURES 20.0
-#define CLIP_LIMIT 16
+#define CLIP_LIMIT 4
 
 /*NAMESPACES*/
 using namespace std;
@@ -22,15 +22,15 @@ enum rel_pose_method {ESSENTIAL, HOMOGRAPHY};
 
 /*CONSTANTS*/
 //Desired Size
-const int desired_width = 324; //648;
-const int desired_height = 256; //512;
+const int desired_width = 640;
+const int desired_height = 505;
 
 //showImg utility
 const int fps = 33;
 bool showFrame = false;
 bool showPrep = false;
 bool showMatch = false;
-bool showInlier= true;
+bool showInlier= false;
 
 /*Detect and Match parameters*/
 //SURF parameters
@@ -42,11 +42,12 @@ bool extended = false;
 bool upright = false;
 
 //LOWE threshold
-const float ratio_thresh = 0.7f; //0.7f;
+const float ratio_thresh = 0.8f; //0.7f;
 
 /*Relative Pose parameters*/
+const float inlier_threshold = 0.1;
 //Valid Point Fraction Threshold
-const float VPF_threshold = 0.85; //0.85
+const float VPF_threshold = 0.5; //0.85
 rel_pose_method rel_method = ESSENTIAL;
 
 const double distance_threshold = 50.0;
@@ -628,7 +629,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 
     //RANSAC Parameters
     double prob = 0.99;
-    double threshold = 0.2;
+    double threshold = 2.0;
 
     vector<uchar> RANSAC_mask;
     Mat R, t;
@@ -659,10 +660,10 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 
             //show_info(outlierCount, inlierCount, kP_converted.Kpoints1.size());
 
-            if((inlierCount/RANSAC_mask.size()) < 0.3)
+            if((inlierCount/RANSAC_mask.size()) < inlier_threshold)
             {
                 prob -= 0.02;
-                threshold += 0.1;
+                threshold += 0.5;
                 continue;        
             }
 
@@ -678,9 +679,9 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 
             float validPointFraction = (float) validInlier/inlier_converted.Kpoints1.size();
 
-            //ROS_INFO("VPF: %f", validPointFraction);
+            ROS_INFO("VPF: %f", validPointFraction);
 
-            if(validPointFraction > VPF_threshold)
+            if(validPointFraction >= VPF_threshold)
             {
                 ROS_WARN("Valid relative Pose");
                 success = true;
@@ -688,7 +689,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
             }
                 
             prob -= 0.02;
-            threshold += 0.1;
+            threshold += 0.5;
         }
         break;
     

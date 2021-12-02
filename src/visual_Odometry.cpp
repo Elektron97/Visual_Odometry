@@ -261,9 +261,9 @@ int main(int argc, char **argv)
         KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
         toc("Detect and Match Features");
 
-        cout << detect_match.Kpoints1.size() << endl;
+        /*cout << detect_match.Kpoints1.size() << endl;
         cout << detect_match.Kpoints2.size() << endl;
-        cout << detect_match.match.size() << endl;
+        cout << detect_match.match.size() << endl;*/
 
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
