@@ -88,7 +88,7 @@ marta_msgs::Dvl dvl_obj;
 
 //Computational Efficient
 stack<clock_t> tictoc_stack;
-bool tic_toc = false;
+bool tic_toc = true;
 
 
 /*FUNCTION DECLARATION*/
@@ -254,17 +254,20 @@ int main(int argc, char **argv)
         }
 
         /*PREPROCESSING*/
-        tic();
+        //tic();
         Mat curr_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
-        toc("Preprocessing");
+        //toc("Preprocessing");
 
         /*DETECT AND MATCH FEATURES*/
-        tic();
+        //tic();
         KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
-        toc("Detect and Match Features");
-
-        /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
+        //toc("Detect and Match Features");
+
+        /*vector<Point2f> Kpoints1, Kpoints2;
+        tic();
+        opt_DetectFeatures(prev_img, curr_img, Kpoints1, Kpoints2);
+        toc("Optimized Detect and Match Features");*/
 
         if(checkMinFeat(kP_converted))
         {
@@ -294,13 +297,22 @@ int main(int argc, char **argv)
         else
             ROS_INFO("Robot is moving! Estimating pose...");
 
-        tic();
+        /*tic();
         RelativePose rel_pose = estimateRelativePose(kP_converted, cameraMatrix);
-        toc("Relative Pose");
+        toc("Relative Pose");*/
 
-        tic();
-        KpAsPoint2f_Match inlier_converted = rel_pose.inlier_points;
-        toc("Extract Inlier");
+        vector<uchar> RANSAC_mask;
+        bool success;
+
+        //tic();
+        optRelativePose(kP_converted, cameraMatrix, R, t, RANSAC_mask, success);
+        //toc("Optimized Relative Pose");
+
+        RelativePose rel_pose;
+        KpAsPoint2f_Match inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
+        rel_pose.success = success;
+        rel_pose.R = R;
+        rel_pose.t = t;
 
         show_inlier(inlier_converted, prev_img, curr_img); //if showInlier == true
 
@@ -347,9 +359,12 @@ int main(int argc, char **argv)
         //Salto triangPoints se success e' false
         if(rel_pose.success)
         {
+            //tic();
             world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
             if(!world_points.empty())
                 SF = scaleFactor(distance, world_points);   //Update Scale Factor
+            
+            //toc("Triangulation");
 
             //else -> SF_k == SF_k-1
         }
@@ -357,7 +372,7 @@ int main(int argc, char **argv)
         //else
             //SF_k == SF_k-1;
         
-        tic();
+        //tic();
         /*ABSOLUTE POSE*/
         if(rel_pose.success)
         {
@@ -375,7 +390,7 @@ int main(int argc, char **argv)
             location = absPose[0];      //[t_w,k]^W
             orientation = absPose[1];   //R_wk ({k} -> {W})
         }
-        toc("Absolute Pose");
+        //toc("Absolute Pose");
 
         if(motion2D)
             location.at<double>(2) = ground_truth.pose.pose.position.z; //uso il GT per la profondita'

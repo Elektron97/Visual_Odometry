@@ -8,7 +8,7 @@
 <node pkg="rosbag" type="play" name="player" args="--clock /home/daniele/bagfiles/rapallo_cut2.bag"/>
 
 <!--Launch visual_Odometry.cpp-->
-<!--<node name="visual_Odometry" pkg ="visual_odometry" type="visual_Odometry" output="screen"/>-->
+<node name="visual_Odometry" pkg ="visual_odometry" type="visual_Odometry" output="screen"/>
 
 <!--Plot Results-->
 <!--Plot Ground Truth-->

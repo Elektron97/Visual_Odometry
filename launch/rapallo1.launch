@@ -17,9 +17,9 @@
 <node name="altitude_plot" pkg="rqt_plot" type="rqt_plot" args="/drivers/altitude/altitude"/>-->
 
 <!--Plot Estimate Variables-->
-<!--<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_pos"/>
+<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_pos"/>
 <node name="rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_rpy"/>
-<node name="vel_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_twist/linear"/>
+<!--<node name="vel_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_twist/linear"/>
 <node name="ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_twist/angular"/>-->
 
 <!--Plot Errors-->
