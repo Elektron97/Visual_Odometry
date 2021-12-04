@@ -95,7 +95,7 @@ bool tic_toc = false;
 void getCameraParam(ros::NodeHandle node_obj);
 void updateGT(geometry_msgs::Point posGT);
 void updateGT(marta_msgs::Imu imu);
-//void updateGT(geometry_msgs::Point posGT, marta_msgs::Imu imu);
+void updateGT(marta_msgs::Dvl dvl);
 void print_VOresult(geometry_msgs::Vector3 estimate_pos, geometry_msgs::Vector3 estimate_rpy);
 visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT);
 visual_odometry::fail_check publish_FailCheck(int fail_succ);
@@ -160,6 +160,8 @@ void dvl_callback(const marta_msgs::Dvl::ConstPtr& msg)
     dvl_obj.velocity_earth_flag = msg->velocity_earth_flag;
     dvl_obj.velocity_instrument = msg->velocity_instrument;
     dvl_obj.velocity_instrument_flag = msg->velocity_instrument_flag;
+
+    updateGT(dvl_obj);
 }
 
 int main(int argc, char **argv)
@@ -261,10 +263,6 @@ int main(int argc, char **argv)
         KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
         toc("Detect and Match Features");
 
-        /*cout << detect_match.Kpoints1.size() << endl;
-        cout << detect_match.Kpoints2.size() << endl;
-        cout << detect_match.match.size() << endl;*/
-
         /*POSE ESTIMATION*/
         KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
 
@@ -304,7 +302,7 @@ int main(int argc, char **argv)
         KpAsPoint2f_Match inlier_converted = rel_pose.inlier_points;
         toc("Extract Inlier");
 
-        show_inlier(inlier_converted, prev_img, curr_img); //if showInlier == true 
+        show_inlier(inlier_converted, prev_img, curr_img); //if showInlier == true
 
         if(rel_pose.success)
         {
@@ -469,12 +467,15 @@ void updateGT(marta_msgs::Imu imu)
 
     //Angular Rate
     ground_truth.twist.twist.angular = imu.angular_rate;
+}
 
-    //Linear Velocity: Integration of Acceleration
-    //v(k) = v(k-1) + T*a(k)
-    ground_truth.twist.twist.linear.x = ground_truth.twist.twist.linear.x + (integrationTime.toSec())*imu.acceleration.x;
-    ground_truth.twist.twist.linear.y = ground_truth.twist.twist.linear.y + (integrationTime.toSec())*imu.acceleration.y;
-    ground_truth.twist.twist.linear.z = ground_truth.twist.twist.linear.z + (integrationTime.toSec())*imu.acceleration.z;
+void updateGT(marta_msgs::Dvl dvl)
+{
+    //Linear Velocity
+    ground_truth.twist.twist.linear.x = dvl.velocity_instrument.x;
+    ground_truth.twist.twist.linear.y = dvl.velocity_instrument.y;
+    ground_truth.twist.twist.linear.z = dvl.velocity_instrument.z;
+
 }
 
 visual_odometry::vo_results publish_VOResults(Mat orientation, Mat location, Mat R, Mat t, double SF, ros::Duration deltaT)
