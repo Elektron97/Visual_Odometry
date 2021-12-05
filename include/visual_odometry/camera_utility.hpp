@@ -44,6 +44,12 @@ bool upright = false;
 //LOWE threshold
 const float ratio_thresh = 0.8f; //0.7f;
 
+//Reject Features in Black Background
+int width_low = 30;
+int height_low = 20;
+int width_high = 610;
+int height_high = 480;
+
 /*Relative Pose parameters*/
 //RANSAC Parameters
 double ransac_prob = 0.99;
@@ -130,7 +136,7 @@ Mat filter_convertWP(Mat world_points, vector<double> reproject_mean, Mat R, Mat
 int recoverPoseHomography(Mat H, KpAsPoint2f_Match inlier, Mat cameraMatrix, Mat& R, Mat& t);
 
 void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, Mat& t, vector<uchar>& RANSAC_mask, bool& success);
-void opt_DetectFeatures(Mat img1, Mat img2, vector<Point2f>& Kpoints1, vector<Point2f>& Kpoints2);
+void opt_DetectFeatures(Mat img1, Mat img2, KpAsPoint2f_Match& kP_converted);
 
 /*********Source**********/
 
@@ -862,8 +868,9 @@ int recoverPoseHomography(Mat H, KpAsPoint2f_Match inlier, Mat cameraMatrix, Mat
     return n_goodTP[idx_max];
 }
 
-void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, Mat& t, vector<uchar>& RANSAC_mask, bool& success)
+void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, Mat& t, KpAsPoint2f_Match& inlier_converted, bool& success)
 {
+    vector<uchar> RANSAC_mask;
     //Optimized Relative Pose
     Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, ransac_prob, ransac_threshold, RANSAC_mask);
 
@@ -876,20 +883,25 @@ void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, M
     }
     int inlierCount = RANSAC_mask.size() - outlierCount;
 
+    inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
+
     if((double)inlierCount/RANSAC_mask.size() <= inlier_threshold)
         success = false;
 
     else
     {
-        int validInlier = recoverPose(E, kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, R, t);
+        Mat rel_rot, rel_trasl;
+        int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, rel_rot, rel_trasl);
 
-        float validPointFraction = (float)validInlier/ (float)RANSAC_mask.size();
+        float validPointFraction = (float)validInlier/ (float)inlierCount;
 
-        //ROS_INFO("VPF: %f", validPointFraction);
+        ROS_INFO("VPF: %f", validPointFraction);
 
         if(validPointFraction >= VPF_threshold)
         {
             ROS_WARN("Valid relative Pose");
+            R = rel_rot;
+            t = rel_trasl;
             success = true; 
         }
 
@@ -899,7 +911,7 @@ void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, M
 
 }
 
-void opt_DetectFeatures(Mat img1, Mat img2, vector<Point2f>& Kpoints1, vector<Point2f>& Kpoints2)
+void opt_DetectFeatures(Mat img1, Mat img2, KpAsPoint2f_Match& kP_converted)
 {
     //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
     //Ptr<SURF> detector = SURF::create( minHessian);
@@ -909,12 +921,29 @@ void opt_DetectFeatures(Mat img1, Mat img2, vector<Point2f>& Kpoints1, vector<Po
     detector->detectAndCompute( img1, noArray(), keypoints1, descriptors1 );
     detector->detectAndCompute( img2, noArray(), keypoints2, descriptors2 );
 
+    /*cout << keypoints1.size() << endl;
+    cout << keypoints2.size() << endl;
+    cout << descriptors1.size() << endl;
+    cout << descriptors2.size() << endl;*/
+
+    //Create Mask to reject matching in black background
+    /*Mat match_mask(keypoints1.size(), keypoints1, CV_8UC1);
+    for(size_t i = 0; i < keypoints1.size(); i++)
+    {
+        bool condition = ((keypoints1[i].pt.x >= width_low ) && (keypoints1[i].pt.x <= width_high)) && ((keypoints1[i].pt.y >= height_low ) && (keypoints1[i].pt.y <= height_high));
+        if(condition)
+            match_mask[i] = 1;
+        else
+            match_mask[i] = 0;
+    }*/
+
     //-- Step 2: Matching descriptor vectors with a flann based matcher
     // Since SURF is a floating-point descriptor NORM_L2 is used
     Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
 
     vector< vector< DMatch > > knn_matches;
     matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2);
+    //matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2, match_mask);
 
     //-- Filter matches using the Lowe's ratio test
     //Default ratio_thresh: 0.7f; 
@@ -934,8 +963,23 @@ void opt_DetectFeatures(Mat img1, Mat img2, vector<Point2f>& Kpoints1, vector<Po
         keypoints1_conv.push_back(keypoints1[it->queryIdx].pt); //query per keypoints1
         // Get the position of keypoints2
         keypoints2_conv.push_back(keypoints2[it->trainIdx].pt); //train per keypoints2
+
+        /*Point2f kp_test1 = keypoints1[it->queryIdx].pt;
+        Point2f kp_test2 = keypoints2[it->queryIdx].pt;
+
+        bool condition1 = ((kp_test1.x >= width_low ) && (kp_test1.x <= width_high)) && ((kp_test1.y >= height_low ) && (kp_test1.y <= height_high));
+        bool condition2 = ((kp_test2.x >= width_low ) && (kp_test2.x <= width_high)) && ((kp_test2.y >= height_low ) && (kp_test2.y <= height_high));
+
+        if(condition1 && condition2)
+        {
+            // Get the position of keypoints1
+            keypoints1_conv.push_back(kp_test1); //query per keypoints1
+            // Get the position of keypoints2
+            keypoints2_conv.push_back(kp_test2); //train per keypoints2
+        }*/
     }
 
-    Kpoints1 = keypoints1_conv;
-    Kpoints2 = keypoints2_conv;
+    kP_converted.Kpoints1 = keypoints1_conv;
+    kP_converted.Kpoints2 = keypoints2_conv;
+    kP_converted.match = matches;
 } 

@@ -88,7 +88,7 @@ marta_msgs::Dvl dvl_obj;
 
 //Computational Efficient
 stack<clock_t> tictoc_stack;
-bool tic_toc = true;
+bool tic_toc = false;
 
 
 /*FUNCTION DECLARATION*/
@@ -260,14 +260,14 @@ int main(int argc, char **argv)
 
         /*DETECT AND MATCH FEATURES*/
         //tic();
-        KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
-        KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
+        //KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
+        //KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
         //toc("Detect and Match Features");
 
-        /*vector<Point2f> Kpoints1, Kpoints2;
         tic();
-        opt_DetectFeatures(prev_img, curr_img, Kpoints1, Kpoints2);
-        toc("Optimized Detect and Match Features");*/
+        KpAsPoint2f_Match kP_converted;
+        opt_DetectFeatures(prev_img, curr_img, kP_converted);
+        toc("Optimized Detect and Match Features");
 
         if(checkMinFeat(kP_converted))
         {
@@ -301,25 +301,20 @@ int main(int argc, char **argv)
         RelativePose rel_pose = estimateRelativePose(kP_converted, cameraMatrix);
         toc("Relative Pose");*/
 
-        vector<uchar> RANSAC_mask;
+        KpAsPoint2f_Match inlier_converted;
         bool success;
 
         //tic();
-        optRelativePose(kP_converted, cameraMatrix, R, t, RANSAC_mask, success);
+        optRelativePose(kP_converted, cameraMatrix, R, t, inlier_converted, success);
         //toc("Optimized Relative Pose");
-
-        RelativePose rel_pose;
-        KpAsPoint2f_Match inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
-        rel_pose.success = success;
-        rel_pose.R = R;
-        rel_pose.t = t;
 
         show_inlier(inlier_converted, prev_img, curr_img); //if showInlier == true
 
-        if(rel_pose.success)
+        if(success)
         {
-            R = rel_pose.R;
-            t = rel_pose.t;
+            //Update R and t
+            //R = rel_pose.R;
+            //t = rel_pose.t;
             fail_succ = SUCCESS;
         }
 
@@ -357,7 +352,7 @@ int main(int argc, char **argv)
         Mat world_points;
         
         //Salto triangPoints se success e' false
-        if(rel_pose.success)
+        if(success)
         {
             //tic();
             world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
@@ -374,7 +369,7 @@ int main(int argc, char **argv)
         
         //tic();
         /*ABSOLUTE POSE*/
-        if(rel_pose.success)
+        if(success)
         {
             vector<Mat> absPose = absolutePose(orientation, location, R, t, SF, world_points);
         
@@ -407,7 +402,7 @@ int main(int argc, char **argv)
         pub_fail.publish(publish_FailCheck(fail_succ));
 
         /*PUBLISH WORLD POINTS AS POINT CLOUD*/
-        if(rel_pose.success)
+        if(success)
         {
             //creating cloud object
             pcl::PointCloud<pcl::PointXYZ> cloud;
