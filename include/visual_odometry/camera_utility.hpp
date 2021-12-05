@@ -53,24 +53,17 @@ int height_high = 480;
 /*Relative Pose parameters*/
 //RANSAC Parameters
 double ransac_prob = 0.99;
-double ransac_threshold = 3.0;
+double ransac_threshold = 2.0;
 
 const float inlier_threshold = 0.1;
 //Valid Point Fraction Threshold
-const float VPF_threshold = 0.5; //0.85
+const float VPF_threshold = 0.85; //0.85
 rel_pose_method rel_method = ESSENTIAL;
 
 const double distance_threshold = 50.0;
 
 /*Triangulation*/
 const float reprojection_tolerance = 0.5;
-
-/*****MAPPA VALORI PER TUNING minHessian*****
- * Desiderati: Circa 840.                   *
- * minHessian = 100 | KeyPoints: 600        *
- * minHessian = 90  | KeyPoints: 750        *
- * minHessian = 85  | KeyPoints: 830        *
- ********************************************/
 
 /*STRUCTS*/
 struct KeyPoint_Match
@@ -318,7 +311,9 @@ KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f
     // 1 = inlier
 
     int outlierCount = 0;
-    for(int i = 0; i < RANSAC_mask.size(); i++)
+    int i = 0;
+
+    for(i; i < RANSAC_mask.size(); i++)
     {
         if(RANSAC_mask[i] == 0)
             outlierCount ++;
@@ -338,8 +333,7 @@ KpAsPoint2f_Match extract_Inlier(vector<Point2f> keypoints1_conv, vector<Point2f
     inlier_match_p2f.Kpoints2.resize(inlierCount);
 
     inlierCount = 0;
-    
-    for (int i=0; i<RANSAC_mask.size(); i++)
+    for (i = 0; i<RANSAC_mask.size(); i++)
     {
         if (RANSAC_mask[i] != 0)
         {
@@ -442,7 +436,8 @@ Mat triangPoints(vector<Point2f> keypoints1_conv_inlier, vector<Point2f> keypoin
 
     vector<double> reproject_mean(reproject_curr.size());
 
-    for(int i = 0; i < reproject_curr.size(); i++)
+    int i = 0;
+    for(i; i < reproject_curr.size(); i++)
     {
         //ROS_INFO("Reproject Error:");
         //ROS_INFO("Prev frame: %f | Curr frame: %f", reproject_prev[i], reproject_curr[i]);
@@ -479,7 +474,8 @@ vector<double> reproject_error(Mat world_points, Mat R, Mat t, Mat cameraMatrix,
     //Compute reproject error
     vector<double> reproject_err(img_points.size());
 
-    for(int i = 0; i < reproject_points.rows; i++)
+    int i = 0;
+    for(i; i < reproject_points.rows; i++)
     {
         //ROS_INFO("Keypoint 2D: [%f, %f] \t Reprojected World Point: [%f, %f]", img_points[i].x, img_points[i].y, reproject_points.at<double>(i, 0), reproject_points.at<double>(i, 1));
         reproject_err[i] = sqrt(pow(img_points[i].x - reproject_points.at<double>(i, 0), 2.0) + pow(img_points[i].y - reproject_points.at<double>(i, 1), 2.0));
@@ -497,7 +493,8 @@ double scaleFactor(float distance, Mat world_points)
     CV_Assert((world_points.rows == 3) && (world_points.type() == CV_64F) && (N != 0));
 
     //Calcolo la media
-    for(int i = 0; i < N; i++)
+    int i = 0;
+    for(i; i < N; i++)
     {
         Zsum += world_points.at<double>(2, i);
     } 
@@ -551,13 +548,16 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
     //Trasformo in coordinate {W} i world_points.
     Mat world_pointsW = Mat::zeros(world_points.rows, world_points.cols, CV_64F);
 
-    for(int i = 0; i < world_points.cols; i++)
+    int i = 0;
+    int j = 0;
+
+    for(i; i < world_points.cols; i++)
     {
         //Local Variable for Loops
         Mat local_WP = coordTransf(SF*world_points.col(i), orient_wk, scaled_locW);
 
         //Fill WP in 3 components
-        for(int j = 0; j < world_points.rows; j++)
+        for(j; j < world_points.rows; j++)
         {
             world_pointsW.at<double>(j, i) = local_WP.at<double>(j); 
         }
@@ -616,7 +616,8 @@ bool checkIfMoving(KpAsPoint2f_Match kP)
     int n_kP = kP.Kpoints1.size();
     vector<double> pixelTrasl(n_kP);
 
-    for(int i = 0; i < n_kP; i++)
+    int i = 0;
+    for(i; i < n_kP; i++)
     {
         pixelTrasl[i] = sqrt(powf(kP.Kpoints1[i].x - kP.Kpoints2[i].x, 2.0) + powf(kP.Kpoints1[i].y - kP.Kpoints2[i].y, 2.0));
     }
@@ -777,7 +778,8 @@ Mat my_convertFromHom(Mat points4d)
 
     Mat points3d(3, cols, points4d.type());
 
-    for(int i = 0; i < cols; i++)
+    int i = 0;
+    for(i; i < cols; i++)
     {
         points3d.col(i) = (points4d.col(i).rowRange(0, 3))/(points4d.col(i).at<float>(3));
     }
@@ -875,7 +877,9 @@ void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, M
     Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, ransac_prob, ransac_threshold, RANSAC_mask);
 
     int outlierCount = 0;
-    for(int i = 0; i < RANSAC_mask.size(); i++)
+    int i = 0;
+
+    for(i; i < RANSAC_mask.size(); i++)
     {
         if(RANSAC_mask[i] == 0)
             outlierCount ++;
@@ -893,7 +897,7 @@ void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, M
         Mat rel_rot, rel_trasl;
         int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, rel_rot, rel_trasl);
 
-        float validPointFraction = (float)validInlier/ (float)inlierCount;
+        float validPointFraction = (float)validInlier/(float)inlierCount;
 
         ROS_INFO("VPF: %f", validPointFraction);
 
@@ -921,62 +925,41 @@ void opt_DetectFeatures(Mat img1, Mat img2, KpAsPoint2f_Match& kP_converted)
     detector->detectAndCompute( img1, noArray(), keypoints1, descriptors1 );
     detector->detectAndCompute( img2, noArray(), keypoints2, descriptors2 );
 
-    /*cout << keypoints1.size() << endl;
-    cout << keypoints2.size() << endl;
-    cout << descriptors1.size() << endl;
-    cout << descriptors2.size() << endl;*/
-
-    //Create Mask to reject matching in black background
-    /*Mat match_mask(keypoints1.size(), keypoints1, CV_8UC1);
-    for(size_t i = 0; i < keypoints1.size(); i++)
-    {
-        bool condition = ((keypoints1[i].pt.x >= width_low ) && (keypoints1[i].pt.x <= width_high)) && ((keypoints1[i].pt.y >= height_low ) && (keypoints1[i].pt.y <= height_high));
-        if(condition)
-            match_mask[i] = 1;
-        else
-            match_mask[i] = 0;
-    }*/
-
     //-- Step 2: Matching descriptor vectors with a flann based matcher
     // Since SURF is a floating-point descriptor NORM_L2 is used
     Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
 
     vector< vector< DMatch > > knn_matches;
     matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2);
-    //matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2, match_mask);
 
     //-- Filter matches using the Lowe's ratio test
     //Default ratio_thresh: 0.7f; 
     vector<DMatch> matches;
-    for (size_t i = 0; i < knn_matches.size(); i++)
+    size_t i = 0;
+    bool lowe_condition = false;
+    bool black_background_condition = false;
+
+    //Filter matches in black background
+    for (i; i < knn_matches.size(); i++)
     {
-        if (knn_matches[i][0].distance < ratio_thresh * knn_matches[i][1].distance)
+        lowe_condition = (knn_matches[i][0].distance < ratio_thresh * knn_matches[i][1].distance);
+        black_background_condition = ((keypoints1[i].pt.x >= width_low ) && (keypoints1[i].pt.x <= width_high)) && ((keypoints1[i].pt.y >= height_low ) && (keypoints1[i].pt.y <= height_high));
+
+        if (lowe_condition && black_background_condition)
         {
             matches.push_back(knn_matches[i][0]);
         }
     }
 
     vector<Point2f> keypoints1_conv, keypoints2_conv;
-    for (vector<DMatch>::const_iterator it= matches.begin(); it!= matches.end(); ++it) 
+    vector<DMatch>::const_iterator it = matches.begin();
+
+    for (it; it!= matches.end(); ++it) 
     {    
         // Get the position of keypoints1
         keypoints1_conv.push_back(keypoints1[it->queryIdx].pt); //query per keypoints1
         // Get the position of keypoints2
         keypoints2_conv.push_back(keypoints2[it->trainIdx].pt); //train per keypoints2
-
-        /*Point2f kp_test1 = keypoints1[it->queryIdx].pt;
-        Point2f kp_test2 = keypoints2[it->queryIdx].pt;
-
-        bool condition1 = ((kp_test1.x >= width_low ) && (kp_test1.x <= width_high)) && ((kp_test1.y >= height_low ) && (kp_test1.y <= height_high));
-        bool condition2 = ((kp_test2.x >= width_low ) && (kp_test2.x <= width_high)) && ((kp_test2.y >= height_low ) && (kp_test2.y <= height_high));
-
-        if(condition1 && condition2)
-        {
-            // Get the position of keypoints1
-            keypoints1_conv.push_back(kp_test1); //query per keypoints1
-            // Get the position of keypoints2
-            keypoints2_conv.push_back(kp_test2); //train per keypoints2
-        }*/
     }
 
     kP_converted.Kpoints1 = keypoints1_conv;

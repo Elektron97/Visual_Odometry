@@ -88,7 +88,7 @@ marta_msgs::Dvl dvl_obj;
 
 //Computational Efficient
 stack<clock_t> tictoc_stack;
-bool tic_toc = false;
+bool tic_toc = true;
 
 
 /*FUNCTION DECLARATION*/
@@ -241,8 +241,8 @@ int main(int argc, char **argv)
         if(tic_toc)
             tic();
 
-
-        ros::spinOnce();    //Read Sensor Data
+        /*READ SENSOR DATA*/
+        ros::spinOnce();    
         
 
         /*SHOW IMAGE FROM BAG FILE*/
@@ -260,15 +260,11 @@ int main(int argc, char **argv)
 
         /*DETECT AND MATCH FEATURES*/
         //tic();
-        //KeyPoint_Match detect_match = detectAndMatchFeatures(prev_img, curr_img);
-        //KpAsPoint2f_Match kP_converted = keyPoint2Point2f(detect_match);
-        //toc("Detect and Match Features");
-
-        tic();
         KpAsPoint2f_Match kP_converted;
         opt_DetectFeatures(prev_img, curr_img, kP_converted);
-        toc("Optimized Detect and Match Features");
+        //toc("Optimized Detect and Match Features");
 
+        /*CHECK FOR ROBUST FEATURES*/
         if(checkMinFeat(kP_converted))
         {
             ROS_ERROR("Num. Features sotto il minimo. Skip Iteration!");
@@ -297,10 +293,7 @@ int main(int argc, char **argv)
         else
             ROS_INFO("Robot is moving! Estimating pose...");
 
-        /*tic();
-        RelativePose rel_pose = estimateRelativePose(kP_converted, cameraMatrix);
-        toc("Relative Pose");*/
-
+        /*RELATIVE POSE*/
         KpAsPoint2f_Match inlier_converted;
         bool success;
 

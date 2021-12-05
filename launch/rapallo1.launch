@@ -12,13 +12,13 @@
 
 <!--Plot Results-->
 <!--Plot Ground Truth-->
-<!--<node name="gt_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/nav_status_ned_compensated"/>-->
-<!--<node name="gt_rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/imu_compensated/orientation/roll:pitch:yaw"/>-->
+<node name="gt_pos_plot" pkg="rqt_plot" type="rqt_plot" args="/nav_status_ned_compensated"/>
+<node name="gt_rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/imu_compensated/orientation/roll:pitch:yaw"/>
 <!--<node name="altitude_plot" pkg="rqt_plot" type="rqt_plot" args="/drivers/altitude/altitude"/>-->
 
 <!--Plot Estimate Variables-->
-<!--<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_pos"/>-->
-<!--<node name="rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_rpy"/>-->
+<node name="pos_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_pos"/>
+<node name="rpy_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_rpy"/>
 <!--<node name="vel_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_twist/linear"/>
 <node name="ang_plot" pkg="rqt_plot" type="rqt_plot" args="/VO_results/estimate_twist/angular"/>-->
 
