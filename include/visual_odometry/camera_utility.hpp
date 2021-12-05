@@ -10,7 +10,7 @@
 /*DEFINE*/
 #define DISTANCE 20.0
 #define MIN_NUM_FEATURES 20.0
-#define CLIP_LIMIT 4
+#define CLIP_LIMIT 32
 
 /*NAMESPACES*/
 using namespace std;
@@ -30,7 +30,7 @@ const int fps = 33;
 bool showFrame = false;
 bool showPrep = false;
 bool showMatch = false;
-bool showInlier= false;
+bool showInlier= true;
 
 /*Detect and Match parameters*/
 //SURF parameters
@@ -42,7 +42,7 @@ bool extended = false;
 bool upright = false;
 
 //LOWE threshold
-const float ratio_thresh = 0.8f; //0.7f;
+const float ratio_thresh = 0.7f; //0.7f;
 
 //Reject Features in Black Background
 int width_low = 30;
@@ -52,10 +52,10 @@ int height_high = 480;
 
 /*Relative Pose parameters*/
 //RANSAC Parameters
-double ransac_prob = 0.99;
+double ransac_prob = 0.9; //0.99;
 double ransac_threshold = 3.0;
 
-const float inlier_threshold = 0.1;
+const float inlier_threshold = 0.3;
 //Valid Point Fraction Threshold
 const float VPF_threshold = 0.50; //0.85
 rel_pose_method rel_method = ESSENTIAL;
@@ -890,7 +890,11 @@ void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, M
     inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
 
     if((double)inlierCount/RANSAC_mask.size() <= inlier_threshold)
+    {
         success = false;
+        ROS_WARN("Few Inliers");
+    }
+        
 
     else
     {
@@ -938,6 +942,7 @@ void opt_DetectFeatures(Mat img1, Mat img2, KpAsPoint2f_Match& kP_converted)
     size_t i = 0;
     bool lowe_condition = false;
     bool black_background_condition = false;
+    //bool black_background_condition = true;
 
     //Filter matches in black background
     for (i; i < knn_matches.size(); i++)
