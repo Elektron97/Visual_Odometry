@@ -53,11 +53,11 @@ int height_high = 480;
 /*Relative Pose parameters*/
 //RANSAC Parameters
 double ransac_prob = 0.99;
-double ransac_threshold = 2.0;
+double ransac_threshold = 3.0;
 
 const float inlier_threshold = 0.1;
 //Valid Point Fraction Threshold
-const float VPF_threshold = 0.85; //0.85
+const float VPF_threshold = 0.50; //0.85
 rel_pose_method rel_method = ESSENTIAL;
 
 const double distance_threshold = 50.0;
