@@ -42,7 +42,7 @@ bool extended = false;
 bool upright = false;
 
 //LOWE threshold
-const float ratio_thresh = 0.7f; //0.7f;
+const float ratio_thresh = 0.75f; //0.7f;
 
 //Reject Features in Black Background
 int width_low = 30;
@@ -55,10 +55,10 @@ int height_high = 480;
 double ransac_prob = 0.9; //0.99;
 double ransac_threshold = 3.0;
 
-const float inlier_threshold = 0.3;
+const float inlier_threshold = 0.25;
 //Valid Point Fraction Threshold
 const float VPF_threshold = 0.50; //0.85
-rel_pose_method rel_method = ESSENTIAL;
+rel_pose_method rel_method = HOMOGRAPHY;
 
 const double distance_threshold = 50.0;
 
