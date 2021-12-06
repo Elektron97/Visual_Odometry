@@ -3,6 +3,7 @@ camera_intrinsic:
   fy: 2303.950911497790
   ccxLeft: 1281.944364189583
   ccyLeft: 1028.352241411627
+  skew: 1.313704257464708
 
 distortion_coefficient:
   radial:
@@ -10,7 +11,7 @@ distortion_coefficient:
     k2: 0.341505688981238
   tangential:
     p1: 0.003116440379070
-    p2: -0.005548904686578
+    p2: -0.005548904686578 
 
 Original_Size:
   width: 2592

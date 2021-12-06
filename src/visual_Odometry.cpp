@@ -66,6 +66,7 @@ double fx;
 double fy;
 double ccxLeft;
 double ccyLeft;
+double skew;
 
 //Distortion Coefficients
 double k1;
@@ -185,14 +186,13 @@ int main(int argc, char **argv)
 
 	ros::Rate loop_rate(FREQUENCY);
 
-    /*Aspetto la FIRST_IMAGE*/
+    /*WAITING SENSORS DATA*/
     ROS_INFO("Waiting %d-th frame...", FIRST_IMAGE);
 
-    while(camera_sx.header.seq <= FIRST_IMAGE) //aspetto le prime immagini
+    while((camera_sx.header.seq <= FIRST_IMAGE) || (imu_obj.header.seq <= FIRST_IMAGE))
     {
         ros::spinOnce();
     }
-
     ROS_WARN("START!");
 
     /*INITIALIZATION*/
@@ -203,7 +203,8 @@ int main(int argc, char **argv)
     getCameraParam(node_obj);
 
     //Intrinsic Parameters
-    Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
+    //Mat cameraMatrix = (Mat1d(3, 3) << fx, 0, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
+    Mat cameraMatrix = (Mat1d(3, 3) << fx, skew, ccxLeft, 0, fy, ccyLeft, 0, 0, 1);
     Mat distortionCoeff = (Mat1d(1, 4) << k1, k2, p1, p2);
 
     /*PREPROCESSING*/
@@ -243,7 +244,6 @@ int main(int argc, char **argv)
 
         /*READ SENSOR DATA*/
         ros::spinOnce();    
-        
 
         /*SHOW IMAGE FROM BAG FILE*/
         if(showFrame)
@@ -349,6 +349,7 @@ int main(int argc, char **argv)
         {
             //tic();
             world_points = triangPoints(inlier_converted.Kpoints1, inlier_converted.Kpoints2, R, t, cameraMatrix);
+
             if(!world_points.empty())
                 SF = scaleFactor(distance, world_points);   //Update Scale Factor
             
@@ -359,7 +360,7 @@ int main(int argc, char **argv)
 
         //else
             //SF_k == SF_k-1;
-        
+
         //tic();
         /*ABSOLUTE POSE*/
         if(success)
@@ -439,6 +440,7 @@ void getCameraParam(ros::NodeHandle node_obj)
     node_obj.getParam("/camera_intrinsic/fy", fy);
     node_obj.getParam("/camera_intrinsic/ccxLeft", ccxLeft);
     node_obj.getParam("/camera_intrinsic/ccyLeft", ccyLeft);
+    node_obj.getParam("/camera_intrinsic/skew", skew);
 
     //Distortion Coefficients
     node_obj.getParam("/distortion_coefficient/radial/k1", k1);

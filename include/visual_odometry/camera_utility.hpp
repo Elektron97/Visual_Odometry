@@ -10,7 +10,7 @@
 /*DEFINE*/
 #define DISTANCE 20.0
 #define MIN_NUM_FEATURES 20.0
-#define CLIP_LIMIT 32
+#define CLIP_LIMIT 16
 
 /*NAMESPACES*/
 using namespace std;
@@ -30,7 +30,7 @@ const int fps = 33;
 bool showFrame = false;
 bool showPrep = false;
 bool showMatch = false;
-bool showInlier= true;
+bool showInlier= false;
 
 /*Detect and Match parameters*/
 //SURF parameters
@@ -53,9 +53,9 @@ int height_high = 480;
 /*Relative Pose parameters*/
 //RANSAC Parameters
 double ransac_prob = 0.9; //0.99;
-double ransac_threshold = 3.0;
+double ransac_threshold = 10.0; //3.0
 
-const float inlier_threshold = 0.25;
+const float inlier_threshold = 0.1;
 //Valid Point Fraction Threshold
 const float VPF_threshold = 0.50; //0.85
 rel_pose_method rel_method = HOMOGRAPHY;
@@ -164,9 +164,14 @@ Mat desiredResize(Mat img, Mat& cameraMatrix)
         resize(img, resized_img, Size(desired_width, desired_height), INTER_LINEAR);
 
         //Update Camera Matrix
-        double ratio = (double) original_width/desired_width;
+
+        //Save skew
+        double skew_ = cameraMatrix.at<double>(0, 1);
+
+        double ratio = (double)original_width/(double)desired_width;
         cameraMatrix = cameraMatrix/ratio;
 
+        cameraMatrix.at<double>(0, 1) = skew_; 
         cameraMatrix.at<double>(2, 2) = 1;
 
         return resized_img;
@@ -807,7 +812,7 @@ Mat filter_convertWP(Mat world_points, vector<double> reproject_mean, Mat R, Mat
 
     //If is Empty, do not filter with other conditions
     if(goodWP.empty())
-        return goodWP.t();
+        return goodWP;
 
     //selecting only world_points with acceptable value of Z coord
     else
@@ -942,7 +947,7 @@ void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, M
 
             inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
 
-            if((float)inlierCount/(float)RANSAC_mask.size() <= inlier_threshold)
+            if((float)inlierCount/(float)RANSAC_mask.size() < inlier_threshold)
             {
                 success = false;
                 ROS_WARN("Few Inliers");
