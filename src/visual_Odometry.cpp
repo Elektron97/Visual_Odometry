@@ -333,11 +333,9 @@ int main(int argc, char **argv)
             //NAV 2D
             t.at<double>(2) = 0.0;
             //rotm2eul
-            Vec3f euler_angles = rotationMatrixToEulerAngles(R);
-            //yaw 
-            double yaw_angle = euler_angles(0);
-
-            R = rotz(yaw_angle);
+            geometry_msgs::Vector3 euler_angles = mat2Euler(R);
+            //yaw
+            R = rotz(euler_angles.z);
         }
 
         //getLastAvaibleAltitude

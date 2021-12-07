@@ -52,13 +52,14 @@ int height_high = 480;
 
 /*Relative Pose parameters*/
 //RANSAC Parameters
-double ransac_prob = 0.9; //0.99;
-double ransac_threshold = 10.0; //3.0
+rel_pose_method rel_method = HOMOGRAPHY;
 
-const float inlier_threshold = 0.2;
+double ransac_prob[] = {0.99, 0.9}; 
+double ransac_threshold[] = {3.0, 10.0};
+
+const float inlier_threshold[] = {0.3, 0.2};
 //Valid Point Fraction Threshold
 const float VPF_threshold = 0.50; //0.85
-rel_pose_method rel_method = HOMOGRAPHY;
 
 const double distance_threshold = 50.0;
 
@@ -679,7 +680,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 
             //show_info(outlierCount, inlierCount, kP_converted.Kpoints1.size());
 
-            if((inlierCount/RANSAC_mask.size()) < inlier_threshold)
+            if((inlierCount/RANSAC_mask.size()) < inlier_threshold[rel_method])
             {
                 prob -= 0.02;
                 threshold += 0.5;
@@ -732,7 +733,7 @@ RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatr
 
             double inlierCount = RANSAC_mask.size() - outlierCount;
 
-            if((inlierCount/RANSAC_mask.size()) < 0.3)
+            if((inlierCount/RANSAC_mask.size()) < inlier_threshold[rel_method])
             {
                 prob -= 0.02;
                 threshold += 0.1; 
@@ -884,7 +885,7 @@ void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, M
         case ESSENTIAL:
         {
             //Optimized Relative Pose
-            Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, ransac_prob, ransac_threshold, RANSAC_mask);
+            Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, ransac_prob[rel_method], ransac_threshold[rel_method], RANSAC_mask);
 
             int outlierCount = 0;
             int i = 0;
@@ -899,7 +900,7 @@ void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, M
 
             inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
 
-            if((float)inlierCount/(float)RANSAC_mask.size() <= inlier_threshold)
+            if((float)inlierCount/(float)RANSAC_mask.size() <= inlier_threshold[rel_method])
             {
                 success = false;
                 ROS_WARN("Few Inliers");
@@ -932,7 +933,7 @@ void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, M
         case HOMOGRAPHY:
         {
             //Optimized Relative Pose
-            Mat H = findHomography(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC, ransac_threshold, RANSAC_mask, 2000, ransac_prob);
+            Mat H = findHomography(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC, ransac_threshold[rel_method], RANSAC_mask, 2000, ransac_prob[rel_method]);
 
             int outlierCount = 0;
             int i = 0;
@@ -947,7 +948,7 @@ void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, M
 
             inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
 
-            if((float)inlierCount/(float)RANSAC_mask.size() < inlier_threshold)
+            if((float)inlierCount/(float)RANSAC_mask.size() < inlier_threshold[rel_method])
             {
                 success = false;
                 ROS_WARN("Few Inliers");
@@ -983,56 +984,6 @@ void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, M
     }
             
 }
-
-/*void optRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix, Mat& R, Mat& t, KpAsPoint2f_Match& inlier_converted, bool& success)
-{
-    vector<uchar> RANSAC_mask;
-    
-    //Optimized Relative Pose
-    Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, ransac_prob, ransac_threshold, RANSAC_mask);
-
-    int outlierCount = 0;
-    int i = 0;
-
-    for(i; i < RANSAC_mask.size(); i++)
-    {
-        if(RANSAC_mask[i] == 0)
-            outlierCount ++;
-
-    }
-    int inlierCount = RANSAC_mask.size() - outlierCount;
-
-    inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
-
-    if((float)inlierCount/(float)RANSAC_mask.size() <= inlier_threshold)
-    {
-        success = false;
-        ROS_WARN("Few Inliers");
-    }
-        
-
-    else
-    {
-        Mat rel_rot, rel_trasl;
-        int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, rel_rot, rel_trasl);
-
-        float validPointFraction = (float)validInlier/(float)inlierCount;
-
-        ROS_INFO("VPF: %f", validPointFraction);
-
-        if(validPointFraction >= VPF_threshold)
-        {
-            ROS_WARN("Valid relative Pose");
-            R = rel_rot;
-            t = rel_trasl;
-            success = true; 
-        }
-
-        else
-            success = false;
-    }
-            
-}*/
 
 void opt_DetectFeatures(Mat img1, Mat img2, KpAsPoint2f_Match& kP_converted)
 {
