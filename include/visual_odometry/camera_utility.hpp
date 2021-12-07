@@ -55,7 +55,7 @@ int height_high = 480;
 double ransac_prob = 0.9; //0.99;
 double ransac_threshold = 10.0; //3.0
 
-const float inlier_threshold = 0.1;
+const float inlier_threshold = 0.2;
 //Valid Point Fraction Threshold
 const float VPF_threshold = 0.50; //0.85
 rel_pose_method rel_method = HOMOGRAPHY;

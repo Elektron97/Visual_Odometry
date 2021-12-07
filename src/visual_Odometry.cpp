@@ -189,10 +189,12 @@ int main(int argc, char **argv)
     /*WAITING SENSORS DATA*/
     ROS_INFO("Waiting %d-th frame...", FIRST_IMAGE);
 
-    while((camera_sx.header.seq <= FIRST_IMAGE) || (imu_obj.header.seq <= FIRST_IMAGE))
+    //Waiting Camera, Imu, Nav_Ned_Compensated initialized.
+    while((camera_sx.header.seq <= FIRST_IMAGE) || (imu_obj.header.seq <= FIRST_IMAGE) || (nav_ned_compensated.x == 0))
     {
         ros::spinOnce();
     }
+
     ROS_WARN("START!");
 
     /*INITIALIZATION*/
