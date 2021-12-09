@@ -42,7 +42,7 @@ bool extended = false;
 bool upright = false;
 
 //LOWE threshold
-const float ratio_thresh = 0.75f; //0.7f;
+const float ratio_thresh = 0.7f; //0.7f;
 
 //Reject Features in Black Background
 int width_low = 30;
@@ -54,12 +54,12 @@ int height_high = 480;
 //RANSAC Parameters
 rel_pose_method rel_method = HOMOGRAPHY;
 
-double ransac_prob[] = {0.99, 0.9}; 
-double ransac_threshold[] = {3.0, 10.0};
+double ransac_prob[] = {0.99, 0.99}; 
+double ransac_threshold[] = {0.5, 2.0};
 
-const float inlier_threshold[] = {0.3, 0.2};
+const float inlier_threshold[] = {0.3, 0.3};
 //Valid Point Fraction Threshold
-const float VPF_threshold = 0.50; //0.85
+const float VPF_threshold = 0.85;
 
 const double distance_threshold = 50.0;
 
@@ -81,14 +81,6 @@ struct KpAsPoint2f_Match
     vector<DMatch> match;
 };
 
-struct RelativePose
-{
-    Mat R;
-    Mat t;
-    KpAsPoint2f_Match inlier_points;
-    bool success;
-};
-
 /*FUNCTIONS*/
 /*********Declaration**********/
 //Preprocessing
@@ -97,10 +89,10 @@ Mat desiredResize(Mat img, Mat& cameraMatrix);
 Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
 
 //Detect and Match Features
-KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2);
+//KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2);
 
 //Structs Interface
-KpAsPoint2f_Match keyPoint2Point2f(KeyPoint_Match kp_match);
+//KpAsPoint2f_Match keyPoint2Point2f(KeyPoint_Match kp_match);
 KeyPoint_Match point2f2keyPoint(KpAsPoint2f_Match kp_pnt2f);
 
 //Inlier
@@ -117,13 +109,12 @@ double scaleFactor(float distance, Mat worldPoints);
 
 //Absolute Pose
 vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat world_points);
-vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF); //overload per success = false
+vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF); //overload for success = false
 
 //Robustness of code
 bool checkIfMoving(KpAsPoint2f_Match kP);
 bool checkMinFeat(KpAsPoint2f_Match kP);
 
-RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix);
 Mat my_convertFromHom(Mat points4d);
 Mat filter_convertWP(Mat world_points, vector<double> reproject_mean, Mat R, Mat t);
 
@@ -217,7 +208,7 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
     return preprocessed_img;
 }
 
-KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
+/*KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
 {
     //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
     //Ptr<SURF> detector = SURF::create( minHessian);
@@ -245,10 +236,10 @@ KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
         }
     }
 
-    /*//Using BruteForce Descriptor Matcher
+    //Using BruteForce Descriptor Matcher
     Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
     vector< DMatch > matches;
-    matcher->match( descriptors1, descriptors2, matches);*/
+    matcher->match( descriptors1, descriptors2, matches);
 
     if(showMatch)
     {
@@ -266,9 +257,9 @@ KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
     output.match = matches;
 
     return output;
-}
+}*/
 
-KpAsPoint2f_Match keyPoint2Point2f(KeyPoint_Match kp_match) 
+/*KpAsPoint2f_Match keyPoint2Point2f(KeyPoint_Match kp_match) 
 {
     // Convert keypoints into Point2f (Solo i KP matchati)
     vector<Point2f> keypoints1_conv, keypoints2_conv;
@@ -286,7 +277,7 @@ KpAsPoint2f_Match keyPoint2Point2f(KeyPoint_Match kp_match)
     kp_p2f.match = kp_match.match; //invariato
 
     return kp_p2f;
-}
+}*/
 
 KeyPoint_Match point2f2keyPoint(KpAsPoint2f_Match kp_pnt2f)
 {
@@ -574,7 +565,7 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
     return absPose;
 }
 
-//Overload nel caso di success = false
+//Overload for case success = false
 vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF)
 {
     /************************************************************
@@ -638,142 +629,6 @@ bool checkIfMoving(KpAsPoint2f_Match kP)
 bool checkMinFeat(KpAsPoint2f_Match kP)
 {
     return (kP.Kpoints1.size() < MIN_NUM_FEATURES);
-}
-
-RelativePose estimateRelativePose(KpAsPoint2f_Match kP_converted, Mat cameraMatrix)
-{
-    /********************ESTIMATE RELATIVE POSE**********************
-     * Funzione che stima la posa relativa partendo dai Keypoints   *
-     * individuati nella sezione Detect and Match Features.         *
-     ****************************************************************/
-
-    //RANSAC Parameters
-    double prob = 0.99;
-    double threshold = 2.0;
-
-    vector<uchar> RANSAC_mask;
-    Mat R, t;
-    KpAsPoint2f_Match inlier_converted;
-
-    bool success = false;
-
-    switch (rel_method)
-    {
-    case ESSENTIAL:
-        while(prob > 0.9)
-        {
-            Mat E = findEssentialMat(kP_converted.Kpoints1, kP_converted.Kpoints2, cameraMatrix, RANSAC, prob, threshold, RANSAC_mask);
-
-            //RANSAC_mask, vettore contenente N elementi (N = length(keypoints)) in cui indica:
-            // 0 = outlier
-            // 1 = inlier
-
-            int outlierCount = 0;
-            for(int i = 0; i < RANSAC_mask.size(); i++)
-            {
-                if(RANSAC_mask[i] == 0)
-                    outlierCount ++;
-
-            }
-
-            double inlierCount = RANSAC_mask.size() - outlierCount;
-
-            //show_info(outlierCount, inlierCount, kP_converted.Kpoints1.size());
-
-            if((inlierCount/RANSAC_mask.size()) < inlier_threshold[rel_method])
-            {
-                prob -= 0.02;
-                threshold += 0.5;
-                continue;        
-            }
-
-            //extract Inlier
-            inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
-
-            //finally, recoverPose()
-            int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t);
-
-            //Nonostante nella doc di OpenCV e' presente, qui sembra non esserci questo overload.
-            //Mat world_points_test;
-            //int validInlier = recoverPose(E, inlier_converted.Kpoints1, inlier_converted.Kpoints2, cameraMatrix, R, t, 50, RANSAC_mask, world_points_test);
-
-            float validPointFraction = (float) validInlier/inlier_converted.Kpoints1.size();
-
-            ROS_INFO("VPF: %f", validPointFraction);
-
-            if(validPointFraction >= VPF_threshold)
-            {
-                ROS_WARN("Valid relative Pose");
-                success = true;
-                break;  
-            }
-                
-            prob -= 0.02;
-            threshold += 0.5;
-        }
-        break;
-    
-    case HOMOGRAPHY:
-        threshold = 0.5; //0.5
-        while(prob > 0.9)
-        {
-            Mat H = findHomography(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC, threshold, RANSAC_mask, 2000, prob);
-
-            //RANSAC_mask, vettore contenente N elementi (N = length(keypoints)) in cui indica:
-            // 0 = outlier
-            // 1 = inlier
-
-            int outlierCount = 0;
-            for(int i = 0; i < RANSAC_mask.size(); i++)
-            {
-                if(RANSAC_mask[i] == 0)
-                    outlierCount ++;
-
-            }
-
-            double inlierCount = RANSAC_mask.size() - outlierCount;
-
-            if((inlierCount/RANSAC_mask.size()) < inlier_threshold[rel_method])
-            {
-                prob -= 0.02;
-                threshold += 0.1; 
-                continue;        
-            }
-
-            //extract Inlier
-            inlier_converted = extract_Inlier(kP_converted.Kpoints1, kP_converted.Kpoints2, RANSAC_mask);
-
-            int validInlier = recoverPoseHomography(H, inlier_converted, cameraMatrix, R, t);
-
-            float validPointFraction = (float) validInlier/inlier_converted.Kpoints1.size();
-
-            if(validPointFraction > VPF_threshold)
-            {
-                ROS_WARN("Valid relative Pose");
-                success = true;
-                break;  
-            }
-                
-            prob -= 0.02;
-            threshold += 0.1;
-        }
-        break;
-    }
-
-    RelativePose rel_pose;
-    rel_pose.R = R;
-    rel_pose.t = t;
-    rel_pose.inlier_points = inlier_converted;
-    rel_pose.success = success;
-
-    /*************In particolare*****************
-     * R = {k-1} -> {k}                         *
-     * t = {k} -> {k-1} espresso in {k}         *
-     * Restituisce di fatto la trasf. omogenea  *
-     * T {k-1} -> {k}                           *
-     ********************************************/
-
-    return rel_pose;
 }
 
 Mat my_convertFromHom(Mat points4d)
