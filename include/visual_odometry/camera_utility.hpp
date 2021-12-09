@@ -30,7 +30,7 @@ const int fps = 33;
 bool showFrame = false;
 bool showPrep = false;
 bool showMatch = false;
-bool showInlier= false;
+bool showInlier = false;
 
 /*Detect and Match parameters*/
 //SURF parameters
@@ -143,7 +143,7 @@ Mat desiredResize(Mat img)
     if( (original_width != desired_width) || (original_height != desired_height) )
     {
         Mat resized_img;
-        resize(img, resized_img, Size(desired_width, desired_height), INTER_LINEAR);
+        resize(img, resized_img, Size(desired_width, desired_height), 0, 0, INTER_AREA);
 
         return resized_img;
     }
@@ -162,7 +162,7 @@ Mat desiredResize(Mat img, Mat& cameraMatrix)
     if( (original_width != desired_width) || (original_height != desired_height) )
     {
         Mat resized_img;
-        resize(img, resized_img, Size(desired_width, desired_height), INTER_LINEAR);
+        resize(img, resized_img, Size(desired_width, desired_height), 0, 0, INTER_AREA);
 
         //Update Camera Matrix
 

@@ -266,6 +266,9 @@ int main(int argc, char **argv)
         opt_DetectFeatures(prev_img, curr_img, kP_converted);
         //toc("Optimized Detect and Match Features");
 
+        ROS_INFO("N KeyPoints Matched:");
+        cout << kP_converted.Kpoints1.size() << endl;
+
         /*CHECK FOR ROBUST FEATURES*/
         if(checkMinFeat(kP_converted))
         {
