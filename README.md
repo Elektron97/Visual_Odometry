@@ -171,7 +171,8 @@ E' necessario inoltre avere il codice sorgente di `vision_opencv` ed in particol
 
 ```
 cd ~/catkin_ws/src
-git clone https://github.com/fizyr-forks/vision_opencv/tree/opencv4
+git clone https://github.com/fizyr-forks/vision_opencv.git
+cd vision_opencv
 git checkout opencv4
 ```
 
