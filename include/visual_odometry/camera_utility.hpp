@@ -21,16 +21,12 @@ using namespace cv::xfeatures2d;
 enum rel_pose_method {ESSENTIAL, HOMOGRAPHY};
 
 /*CONSTANTS*/
-//Desired Size
-const int desired_width = 640;
-const int desired_height = 505;
-
 //showImg utility
 const int fps = 33;
 bool showFrame = false;
 bool showPrep = false;
 bool showMatch = false;
-bool showInlier = false;
+bool showInlier = true;
 
 /*Detect and Match parameters*/
 //SURF parameters
@@ -45,10 +41,10 @@ bool upright = false;
 const float ratio_thresh = 0.7f; //0.7f;
 
 //Reject Features in Black Background
-int width_low = 30;
+int width_low = 28;
 int height_low = 20;
-int width_high = 610;
-int height_high = 480;
+int width_high = 614;
+int height_high = 482;
 
 /*Relative Pose parameters*/
 //RANSAC Parameters
@@ -84,15 +80,10 @@ struct KpAsPoint2f_Match
 /*FUNCTIONS*/
 /*********Declaration**********/
 //Preprocessing
-Mat desiredResize(Mat img);
-Mat desiredResize(Mat img, Mat& cameraMatrix);
-Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff); 
+Mat desiredResize(Mat img, int desired_width, int desired_height);
+Mat get_image(Mat current_img, int desired_width, int desired_height, Mat cameraMatrix, Mat distortionCoeff);
 
-//Detect and Match Features
-//KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2);
-
-//Structs Interface
-//KpAsPoint2f_Match keyPoint2Point2f(KeyPoint_Match kp_match);
+void updateCameraMatrix(Mat image, int desired_width, int desired_height, Mat& cameraMatrix);
 KeyPoint_Match point2f2keyPoint(KpAsPoint2f_Match kp_pnt2f);
 
 //Inlier
@@ -125,7 +116,7 @@ void opt_DetectFeatures(Mat img1, Mat img2, KpAsPoint2f_Match& kP_converted);
 
 /*********Source**********/
 
-Mat desiredResize(Mat img)
+Mat desiredResize(Mat img, int desired_width, int desired_height)
 {
     //Check if the img is in the desired size
     int original_width = img.cols;
@@ -144,41 +135,20 @@ Mat desiredResize(Mat img)
 
 }
 
-Mat desiredResize(Mat img, Mat& cameraMatrix)
+void updateCameraMatrix(Mat image, int desired_width, int desired_height, Mat& cameraMatrix)
 {
-    //Check if the img is in the desired size
-    int original_width = img.cols;
-    int original_height = img.rows;
+    double RW = ((double)desired_width)/((double)image.cols);
+    double RH = ((double)desired_height)/((double)image.rows);
 
-    if( (original_width != desired_width) || (original_height != desired_height) )
-    {
-        Mat resized_img;
-        resize(img, resized_img, Size(desired_width, desired_height), 0, 0, INTER_AREA);
-
-        //Update Camera Matrix
-
-        //Save skew
-        double skew_ = cameraMatrix.at<double>(0, 1);
-
-        double ratio = (double)original_width/(double)desired_width;
-        cameraMatrix = cameraMatrix/ratio;
-
-        cameraMatrix.at<double>(0, 1) = skew_; 
-        cameraMatrix.at<double>(2, 2) = 1;
-
-        return resized_img;
-    }
-
-    else
-        return img;
-
+    Mat rescale_matrix = (Mat1d(3, 3) << RW, 0, 0, 0, RH, 0, 0, 0, 1);
+    cameraMatrix = rescale_matrix*cameraMatrix;
 }        
         
-Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
+Mat get_image(Mat current_img, int desired_width, int desired_height, Mat cameraMatrix, Mat distortionCoeff)
 {
     //PREPROCESSING IMAGE
     //Resize
-    Mat resized_img = desiredResize(current_img);
+    Mat resized_img = desiredResize(current_img, desired_width, desired_height);
 
     //Undistort
     Mat undistorted_image;
@@ -207,77 +177,6 @@ Mat get_image(Mat current_img, Mat cameraMatrix, Mat distortionCoeff)
 
     return preprocessed_img;
 }
-
-/*KeyPoint_Match detectAndMatchFeatures(Mat img1, Mat img2)
-{
-    //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
-    //Ptr<SURF> detector = SURF::create( minHessian);
-    Ptr<SURF> detector = SURF::create( minHessian, nOctaves, nOctaveLayers, extended, upright);
-    vector<KeyPoint> keypoints1, keypoints2;
-    Mat descriptors1, descriptors2;
-    detector->detectAndCompute( img1, noArray(), keypoints1, descriptors1 );
-    detector->detectAndCompute( img2, noArray(), keypoints2, descriptors2 );
-
-    //-- Step 2: Matching descriptor vectors with a flann based matcher
-    // Since SURF is a floating-point descriptor NORM_L2 is used
-    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
-
-    vector< vector< DMatch > > knn_matches;
-    matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2);
-
-    //-- Filter matches using the Lowe's ratio test
-    //Default ratio_thresh: 0.7f; 
-    vector<DMatch> matches;
-    for (size_t i = 0; i < knn_matches.size(); i++)
-    {
-        if (knn_matches[i][0].distance < ratio_thresh * knn_matches[i][1].distance)
-        {
-            matches.push_back(knn_matches[i][0]);
-        }
-    }
-
-    //Using BruteForce Descriptor Matcher
-    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
-    vector< DMatch > matches;
-    matcher->match( descriptors1, descriptors2, matches);
-
-    if(showMatch)
-    {
-        //-- Draw matches
-        Mat img_matches;
-        drawMatches( img1, keypoints1, img2, keypoints2, matches, img_matches );
-        //-- Show detected matches
-        imshow("Matches", img_matches );
-        waitKey(fps);
-    }
-
-    KeyPoint_Match output;
-    output.Kpoints1 = keypoints1;
-    output.Kpoints2 = keypoints2;
-    output.match = matches;
-
-    return output;
-}*/
-
-/*KpAsPoint2f_Match keyPoint2Point2f(KeyPoint_Match kp_match) 
-{
-    // Convert keypoints into Point2f (Solo i KP matchati)
-    vector<Point2f> keypoints1_conv, keypoints2_conv;
-    for (vector<DMatch>::const_iterator it= kp_match.match.begin(); it!= kp_match.match.end(); ++it) 
-    {    
-        // Get the position of keypoints1
-        keypoints1_conv.push_back(kp_match.Kpoints1[it->queryIdx].pt); //query per keypoints1
-        // Get the position of keypoints2
-        keypoints2_conv.push_back(kp_match.Kpoints2[it->trainIdx].pt); //train per keypoints2
-    }
-
-    KpAsPoint2f_Match kp_p2f;
-    kp_p2f.Kpoints1 = keypoints1_conv;
-    kp_p2f.Kpoints2 = keypoints2_conv;
-    kp_p2f.match = kp_match.match; //invariato
-
-    return kp_p2f;
-}*/
 
 KeyPoint_Match point2f2keyPoint(KpAsPoint2f_Match kp_pnt2f)
 {
@@ -875,6 +774,16 @@ void opt_DetectFeatures(Mat img1, Mat img2, KpAsPoint2f_Match& kP_converted)
         {
             matches.push_back(knn_matches[i][0]);
         }
+    }
+
+    if(showMatch)
+    {
+        //-- Draw matches
+        Mat img_matches;
+        drawMatches( img1, keypoints1, img2, keypoints2, matches, img_matches );
+        //-- Show detected matches
+        imshow("Matches", img_matches );
+        waitKey(fps);
     }
 
     vector<Point2f> keypoints1_conv, keypoints2_conv;

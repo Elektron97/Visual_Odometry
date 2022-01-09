@@ -13,6 +13,6 @@ distortion_coefficient:
     p1: 0.00311644037907021
     p2: -0.00554890468657758 
 
-Original_Size:
-  width: 2592
-  height: 2048
+desired_size:
+  width: 640
+  height: 505

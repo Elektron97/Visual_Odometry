@@ -74,6 +74,10 @@ double k2;
 double p1;
 double p2;
 
+//Desired Size
+int desired_width;
+int desired_height;
+
 Mat Rbc; //Rot. Matrix from {C} -> {B}
 
 //Sensor  
@@ -210,18 +214,31 @@ int main(int argc, char **argv)
     Mat distortionCoeff = (Mat1d(1, 4) << k1, k2, p1, p2);
 
     /*PREPROCESSING*/
-    //Overload for init: Update cameraMatrix
-    Mat resized_img = desiredResize(ros2cv(camera_sx), cameraMatrix);
+    //Update cameraMatrix
+    Mat first_img = ros2cv(camera_sx);
+    updateCameraMatrix(first_img, desired_width, desired_height, cameraMatrix);
     //rgb2gray - Undistort Image - CLAHE
-    Mat prev_img = get_image(resized_img, cameraMatrix, distortionCoeff);
+    Mat prev_img = get_image(first_img, desired_width, desired_height, cameraMatrix, distortionCoeff);
+
+    //Test: Plot Bounding Box
+    if(false)
+    {
+        Mat prev_imgBGR;
+        cvtColor(prev_img, prev_imgBGR, COLOR_GRAY2BGR);
+        rectangle(prev_imgBGR, Point(width_low, height_low), Point(width_high, height_high), Scalar(255, 0, 0), 2);
+
+        namedWindow("Resized Image BB", WINDOW_AUTOSIZE);
+        imshow("Resized Image BB", prev_imgBGR);
+        waitKey(fps);
+    }
 
     ros::Time prev_time = camera_sx.header.stamp;
 
     //Inizializzo le Trasformazioni dal GT -> AbsPose
     //convert quaternion in Rotational Matrix
-    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //{Body_k-1} -> {ENU}
-    Mat orientation = orientation_body*Rbc; //{Camera_k-1} -> {ENU} 
-    Mat location = pos2Mat(ground_truth.pose.pose.position); //trasl {ENU} -> {Body} in frame {ENU}
+    Mat orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //{Body_k-1} -> {W}
+    Mat orientation = orientation_body*Rbc; //{Camera_k-1} -> {W} 
+    Mat location = pos2Mat(ground_truth.pose.pose.position); //trasl {W} -> {Body} in frame {W}
 
     //Relative Orientation and Location
     Mat R = Mat::eye(3, 3, CV_64F); //{k-1} -> {k}
@@ -251,13 +268,13 @@ int main(int argc, char **argv)
         if(showFrame)
         {
             namedWindow("Resized Image", WINDOW_AUTOSIZE);
-            imshow("Resized Image", desiredResize(ros2cv(camera_sx)));
+            imshow("Resized Image", desiredResize(ros2cv(camera_sx), desired_width, desired_height));
             waitKey(fps);
         }
 
         /*PREPROCESSING*/
         //tic();
-        Mat curr_img = get_image(ros2cv(camera_sx), cameraMatrix, distortionCoeff);
+        Mat curr_img = get_image(ros2cv(camera_sx), desired_width, desired_height, cameraMatrix, distortionCoeff);
         //toc("Preprocessing");
 
         /*DETECT AND MATCH FEATURES*/
@@ -450,6 +467,10 @@ void getCameraParam(ros::NodeHandle node_obj)
     node_obj.getParam("/distortion_coefficient/radial/k2", k2);
     node_obj.getParam("/distortion_coefficient/tangential/p1", p1);
     node_obj.getParam("/distortion_coefficient/tangential/p2", p2);
+
+    //Desired Size
+    node_obj.getParam("/desired_size/width", desired_width);
+    node_obj.getParam("/desired_size/height", desired_height);
 }
 
 void updateGT(geometry_msgs::Point posGT)
