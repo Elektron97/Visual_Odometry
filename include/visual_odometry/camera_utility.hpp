@@ -453,9 +453,9 @@ vector<Mat> absolutePose(Mat rotm, Mat tran, Mat orient, Mat loc, double SF, Mat
         Mat local_WP = coordTransf(SF*world_points.col(i), orient_wk, scaled_locW);
 
         //Fill WP in 3 components
-        for(j; j < world_points.rows; j++)
+        for(j = 0; j < world_points.rows; j++)
         {
-            world_pointsW.at<double>(j, i) = local_WP.at<double>(j); 
+            world_pointsW.at<double>(j, i) = local_WP.at<double>(j);
         }
     }
 
