@@ -26,7 +26,7 @@ const int fps = 33;
 bool showFrame = false;
 bool showPrep = false;
 bool showMatch = false;
-bool showInlier = true;
+bool showInlier = false;
 
 /*Detect and Match parameters*/
 //SURF parameters
@@ -48,14 +48,14 @@ int height_high = 482;
 
 /*Relative Pose parameters*/
 //RANSAC Parameters
-rel_pose_method rel_method = HOMOGRAPHY;
+rel_pose_method rel_method = ESSENTIAL;
 
-double ransac_prob[] = {0.99, 0.99}; 
-double ransac_threshold[] = {0.5, 2.0};
+double ransac_prob[] = {0.99, 0.99}; //ESSENTIAL | HOMOGRAPHY
+double ransac_threshold[] = {1.0, 2.0}; //ESSENTIAL | HOMOGRAPHY
 
-const float inlier_threshold[] = {0.3, 0.3};
+const float inlier_threshold[] = {0.3, 0.3}; //ESSENTIAL | HOMOGRAPHY
 //Valid Point Fraction Threshold
-const float VPF_threshold = 0.85;
+const float VPF_threshold = 0.5; //0.85;
 
 const double distance_threshold = 50.0;
 

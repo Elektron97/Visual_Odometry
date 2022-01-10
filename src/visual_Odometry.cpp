@@ -93,7 +93,7 @@ marta_msgs::Dvl dvl_obj;
 
 //Computational Efficient
 stack<clock_t> tictoc_stack;
-bool tic_toc = true;
+bool tic_toc = false;
 
 
 /*FUNCTION DECLARATION*/
