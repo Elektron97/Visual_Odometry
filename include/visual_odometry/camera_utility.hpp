@@ -51,7 +51,7 @@ int height_high = 482;
 rel_pose_method rel_method = ESSENTIAL;
 
 double ransac_prob[] = {0.99, 0.99}; //ESSENTIAL | HOMOGRAPHY
-double ransac_threshold[] = {1.0, 2.0}; //ESSENTIAL | HOMOGRAPHY
+double ransac_threshold[] = {3.0, 2.0}; //ESSENTIAL | HOMOGRAPHY
 
 const float inlier_threshold[] = {0.3, 0.3}; //ESSENTIAL | HOMOGRAPHY
 //Valid Point Fraction Threshold

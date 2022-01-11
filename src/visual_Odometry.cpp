@@ -123,6 +123,8 @@ void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
     camera_sx.header = msg->header;
     camera_sx.format = msg->format;
     camera_sx.data = msg->data;
+
+    ROS_INFO("Camera Callback");
 }
 
 void navCompensated_callback(const geometry_msgs::Point::ConstPtr& msg)
@@ -132,6 +134,7 @@ void navCompensated_callback(const geometry_msgs::Point::ConstPtr& msg)
     nav_ned_compensated.z = msg->z;
 
     updateGT(nav_ned_compensated);
+    ROS_INFO("Nav Ned Callback");
 }
 
 void imu_callback(const marta_msgs::Imu::ConstPtr& msg)
@@ -145,6 +148,7 @@ void imu_callback(const marta_msgs::Imu::ConstPtr& msg)
     imu_obj.free_acceleration = msg->free_acceleration;
 
     updateGT(imu_obj);
+    ROS_INFO("Imu Callback");
 }
 
 void altitude_callback(const marta_msgs::Altitude::ConstPtr& msg)
@@ -152,6 +156,8 @@ void altitude_callback(const marta_msgs::Altitude::ConstPtr& msg)
     altitude.header = msg->header;
     altitude.altitude = msg->altitude;
     altitude.validity = msg->validity;
+
+    ROS_INFO("Altitude Callback");
 }
 
 void dvl_callback(const marta_msgs::Dvl::ConstPtr& msg)
@@ -167,6 +173,7 @@ void dvl_callback(const marta_msgs::Dvl::ConstPtr& msg)
     dvl_obj.velocity_instrument_flag = msg->velocity_instrument_flag;
 
     updateGT(dvl_obj);
+    ROS_INFO("Dvl callback");
 }
 
 int main(int argc, char **argv)
@@ -186,7 +193,7 @@ int main(int argc, char **argv)
     ros::Subscriber sub_NavNed = node_obj.subscribe("/nav_status_ned_compensated", QUEUE_SIZE, navCompensated_callback);
     ros::Subscriber sub_IMU = node_obj.subscribe("/imu_compensated", QUEUE_SIZE, imu_callback);
     ros::Subscriber sub_Altitude = node_obj.subscribe("/drivers/altitude", QUEUE_SIZE, altitude_callback);
-    ros::Subscriber sub_Dvl = node_obj.subscribe("/drivers/Dvl", QUEUE_SIZE, dvl_callback);
+    ros::Subscriber sub_Dvl = node_obj.subscribe("/drivers/dvl", QUEUE_SIZE, dvl_callback);
 
 	ros::Rate loop_rate(FREQUENCY);
 
@@ -255,14 +262,20 @@ int main(int argc, char **argv)
 
     int fail_succ; //Check fail state
 
+    bool first_measure = true;
+
     /*ITERATIONS*/
     while(ros::ok())
     {
         if(tic_toc)
             tic();
 
+
         /*READ SENSOR DATA*/
-        ros::spinOnce();    
+        ROS_INFO("CallBacks");
+        ROS_INFO("------------------------");
+        ros::spinOnce();
+        ROS_INFO("------------------------");
 
         /*SHOW IMAGE FROM BAG FILE*/
         if(showFrame)
@@ -382,6 +395,19 @@ int main(int argc, char **argv)
             //SF_k == SF_k-1;
 
         //tic();
+
+        //Re-init for 0 estimate error
+        if(first_measure)
+        {
+            ROS_INFO("Re-Init Orientation and Location");
+            //convert quaternion in Rotational Matrix
+            orientation_body = quat2Mat(ground_truth.pose.pose.orientation); //{Body_k-1} -> {W}
+            orientation = orientation_body*Rbc; //{Camera_k-1} -> {W} 
+            location = pos2Mat(ground_truth.pose.pose.position); //trasl {W} -> {Body} in frame {W}
+
+            first_measure = false; //do not repeat anymore
+        }
+
         /*ABSOLUTE POSE*/
         if(success)
         {
