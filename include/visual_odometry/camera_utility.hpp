@@ -51,7 +51,7 @@ int height_high = 482;
 rel_pose_method rel_method = ESSENTIAL;
 
 double ransac_prob[] = {0.99, 0.99}; //ESSENTIAL | HOMOGRAPHY
-double ransac_threshold[] = {3.0, 2.0}; //ESSENTIAL | HOMOGRAPHY
+double ransac_threshold[] = {2.0, 2.0}; //ESSENTIAL | HOMOGRAPHY
 
 const float inlier_threshold[] = {0.3, 0.3}; //ESSENTIAL | HOMOGRAPHY
 //Valid Point Fraction Threshold
@@ -749,6 +749,11 @@ void opt_DetectFeatures(Mat img1, Mat img2, KpAsPoint2f_Match& kP_converted)
     detector->detectAndCompute( img1, noArray(), keypoints1, descriptors1 );
     detector->detectAndCompute( img2, noArray(), keypoints2, descriptors2 );
 
+    //OLD METHOD
+    /*Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::BRUTEFORCE);
+    vector< DMatch > matches;
+    matcher->match( descriptors1, descriptors2, matches );*/
+    
     //-- Step 2: Matching descriptor vectors with a flann based matcher
     // Since SURF is a floating-point descriptor NORM_L2 is used
     Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
@@ -762,6 +767,7 @@ void opt_DetectFeatures(Mat img1, Mat img2, KpAsPoint2f_Match& kP_converted)
     size_t i = 0;
     bool lowe_condition = false;
     bool black_background_condition = false;
+    //bool lowe_condition = true;
     //bool black_background_condition = true;
 
     //Filter matches in black background
