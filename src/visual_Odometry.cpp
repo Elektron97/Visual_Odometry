@@ -124,7 +124,7 @@ void cameraSX_callback(const sensor_msgs::CompressedImage::ConstPtr& msg)
     camera_sx.format = msg->format;
     camera_sx.data = msg->data;
 
-    ROS_INFO("Camera Callback");
+    //ROS_INFO("Camera Callback");
 }
 
 void navCompensated_callback(const geometry_msgs::Point::ConstPtr& msg)
@@ -134,7 +134,7 @@ void navCompensated_callback(const geometry_msgs::Point::ConstPtr& msg)
     nav_ned_compensated.z = msg->z;
 
     updateGT(nav_ned_compensated);
-    ROS_INFO("Nav Ned Callback");
+    //ROS_INFO("Nav Ned Callback");
 }
 
 void imu_callback(const marta_msgs::Imu::ConstPtr& msg)
@@ -148,7 +148,7 @@ void imu_callback(const marta_msgs::Imu::ConstPtr& msg)
     imu_obj.free_acceleration = msg->free_acceleration;
 
     updateGT(imu_obj);
-    ROS_INFO("Imu Callback");
+    //ROS_INFO("Imu Callback");
 }
 
 void altitude_callback(const marta_msgs::Altitude::ConstPtr& msg)
@@ -157,7 +157,7 @@ void altitude_callback(const marta_msgs::Altitude::ConstPtr& msg)
     altitude.altitude = msg->altitude;
     altitude.validity = msg->validity;
 
-    ROS_INFO("Altitude Callback");
+    //ROS_INFO("Altitude Callback");
 }
 
 void dvl_callback(const marta_msgs::Dvl::ConstPtr& msg)
@@ -173,7 +173,7 @@ void dvl_callback(const marta_msgs::Dvl::ConstPtr& msg)
     dvl_obj.velocity_instrument_flag = msg->velocity_instrument_flag;
 
     updateGT(dvl_obj);
-    ROS_INFO("Dvl callback");
+    //ROS_INFO("Dvl Callback");
 }
 
 int main(int argc, char **argv)
@@ -272,10 +272,10 @@ int main(int argc, char **argv)
 
 
         /*READ SENSOR DATA*/
-        ROS_INFO("CallBacks");
-        ROS_INFO("------------------------");
+        //ROS_INFO("CallBacks");
+        //ROS_INFO("------------------------");
         ros::spinOnce();
-        ROS_INFO("------------------------");
+        //ROS_INFO("------------------------");
 
         /*SHOW IMAGE FROM BAG FILE*/
         if(showFrame)

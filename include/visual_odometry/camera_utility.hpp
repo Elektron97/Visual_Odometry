@@ -48,14 +48,14 @@ int height_high = 482;
 
 /*Relative Pose parameters*/
 //RANSAC Parameters
-rel_pose_method rel_method = ESSENTIAL;
+rel_pose_method rel_method = HOMOGRAPHY;
 
 double ransac_prob[] = {0.99, 0.99}; //ESSENTIAL | HOMOGRAPHY
-double ransac_threshold[] = {2.0, 2.0}; //ESSENTIAL | HOMOGRAPHY
+double ransac_threshold[] = {2.0, 5.0}; //ESSENTIAL | HOMOGRAPHY
 
 const float inlier_threshold[] = {0.3, 0.3}; //ESSENTIAL | HOMOGRAPHY
 //Valid Point Fraction Threshold
-const float VPF_threshold = 0.85; //0.85;
+const float VPF_threshold = 0.5; //0.85 ESSENTIAL | 0.5 HOMOGRAPHY
 
 const double distance_threshold = 50.0;
 
