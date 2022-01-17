@@ -2,7 +2,7 @@
 Progetto SGN: Visual Odometry
 
 L'obiettivo del progetto è quello di implementare uno script MATLAB di Visual Odometry su ROS, con nodi implementati in C++.
-## Guida per l'installazione di OpenCV e opencv_contrib:
+## Guida per l'installazione di OpenCV, opencv_contribe cv_bridge
 Per l'installazione di OpenCV 4 con opencv_contrib, digitare nel terminale:
 
 ```
